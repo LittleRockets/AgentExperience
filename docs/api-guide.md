@@ -1,0 +1,268 @@
+# API guide
+
+This guide documents the intended public surface exported by `agent_experience` and
+`agent_experience.adapters`. Protobuf classes under `agent_experience.schema` are public data
+contracts but are lower-level and may evolve during pre-alpha development.
+
+## Primary Runtime API
+
+### `agent_experience(path=".agent-experience", *, redaction=None, minimum_confidence=0.8)`
+
+Creates the single path-scoped `ExperienceRuntime`. This factory is the recommended application
+entry point.
+
+### `ExperienceRuntime.run`
+
+Supports both `@experience.run` and `@experience.run(verify=predicate)`. It automatically records a
+run boundary and preserves synchronous/asynchronous return and exception behavior. A verifier emits
+quality evidence once for the complete causal run tree; without it, the trace remains observational.
+
+### `ExperienceRuntime.tool`
+
+Used as bare `@experience.tool`. It derives a contract identity from Python module, qualified name,
+signature and code fingerprint. Nested tools reuse the active run context; standalone calls receive
+an automatic run. It does not require a path, name, registry or ToolSpec.
+
+The same decorator is used for application Skills. A Skill is treated as a callable capability
+boundary; its module, qualified name, signature and code fingerprint provide the automatic identity
+and implementation version. AgentExperience observes execution evidence but never persists or
+executes the Skill's source code.
+
+### `ExperienceRuntime.langchain()` / `langgraph()` / `mcp()`
+
+These methods bind optional framework integrations to the runtime-owned instrumentation gateway.
+They never require another storage path or Repository:
+
+- `langchain()` returns middleware for the framework's `middleware` list;
+- `langgraph(run_id=None)` returns a bridge for typed graph stream events;
+- `mcp(session, trust_domain=..., transport_identity="")` returns an observed client-session proxy.
+
+Framework-native registration is still explicit because silently monkey-patching framework objects
+would be unsafe and version-fragile.
+
+### `ExperienceRuntime.flush()` / `close()`
+
+`flush()` waits for background candidate consolidation and surfaces worker failures. `close()`
+flushes, stops the worker and closes storage. The runtime also registers a process-exit close hook.
+
+### `ExperienceRuntime.repository`
+
+Advanced read/export escape hatch for the runtime-owned Repository. Normal observation code should
+not access it.
+
+Everything below is the low-level or policy surface used to extend the Runtime.
+
+## Storage and observation
+
+### `Repository(path, *, durability=...)`
+
+Owns the append-only event log. Use it as a context manager. Important methods:
+
+- `append_event(...)`: append a typed event with run/correlation/causation metadata;
+- `events()`: iterate verified event envelopes;
+- `verify()`: verify framing, checksums, repository identity and sequence ordering;
+- `last_sequence`: current sequence number.
+
+The built-in repository is single-process/single-writer.
+
+### `capture(repository, *, producer, evaluator, redaction)`
+
+Decorator for synchronous or asynchronous Python functions. It records run boundaries while
+preserving the wrapped function's result and exception behavior.
+
+### `ObservationContext`
+
+Carries `run_id`, `correlation_id` and `causation_id` through nested model/tool calls.
+`current_context()` returns the current context.
+
+### `ToolRegistry`, `ToolSpec`
+
+Explicit registry for known typed tools. Replay resolves only registered contracts; arbitrary
+callables or code from stored experience are never executed.
+
+### `RedactionPolicy`
+
+Sanitizes observed mappings, sequences, strings and objects. Applications can inject a stricter
+policy at observation boundaries.
+
+## Outcome evaluation
+
+### `Outcome`
+
+Enum: `SUCCESS`, `FAILURE`, `PARTIAL`, `UNKNOWN`.
+
+### `Evaluation`
+
+Immutable result containing outcome, confidence, evaluator ID/version and evidence references.
+
+### `OutcomeEvaluator[T]`
+
+Protocol for custom deterministic or externally verified evaluators.
+
+### `PredicateEvaluator[T]`
+
+Convenience evaluator backed by a predicate. Prefer stable, versioned predicates over model
+self-grading for activation evidence.
+
+## Extraction, mining and lifecycle
+
+### `CandidateService(repository, *, minimum_confidence=0.8)`
+
+`extract_all()` rebuilds traces, extracts eligible candidates and deduplicates semantic content.
+
+### `RunFeatures`
+
+Compact normalized evidence: passed/failed constraints, optional tool sequence, tokens and latency.
+It intentionally excludes the original model output.
+
+### `build_baseline_profile(...)`
+
+Creates a versioned fingerprint of the system prompt, workflow, sorted tool contracts, output
+contract and model identity. Text is normalized as UTF-8; workflow/output contracts accept `str`
+or `bytes`.
+
+### `DeterministicMiner`
+
+`mine(baseline, runs, baseline_constraints=...)` intersects facts from at least two independent
+runs, removes baseline facts and returns `MiningResult`. The built-in miner uses no LLM tokens.
+
+### `MiningResult`
+
+Contains the `ExperienceDelta`, source run IDs, whether an LLM was used, mining input/output tokens
+and mining latency.
+
+### `definition_from_delta(result, *, task_type, created_by=...)`
+
+Creates an immutable Candidate `ExperienceDefinition` in `PROMPT_DELTA` mode.
+
+### `PromotionPolicy`
+
+Configures independent success/failure thresholds and manual approval requirements.
+
+### `LifecycleManager`
+
+- `record_evaluation(evaluation)` appends evidence;
+- `promote(experience_id, manual_approval=False)` applies evidence thresholds;
+- `promote_with_benefit(...)` activates a Validated revision only after benefit acceptance;
+- `enforce_benefit(...)` quarantines Active/Validated revisions that fail aggregate policy;
+- `transition(current, status)` creates a legal immutable revision.
+
+### `ExperienceCatalog`
+
+Rebuilds current definitions and evaluation evidence from the event log.
+
+## Rule selection and extension protocols
+
+### `TokenBudget`
+
+Defines total context, base input, reserved output and maximum experience tokens.
+`available_experience_tokens` is the usable minimum after all constraints.
+
+### `RuleSelector`
+
+Selects highest-priority `PROMPT_DELTA` rules that are not already represented by baseline paths and
+fit the budget. `select_and_record()` also emits an auditable selection/rejection event.
+
+### `RuleSelection`
+
+Contains selected rules, rejected IDs, estimated tokens and rendered text.
+
+### `FeatureExtractor[T]`
+
+Protocol for mapping a framework/domain run into `RunFeatures`.
+
+### `BaselineResolver[T]`
+
+Protocol for resolving application state into a `BaselineProfile`.
+
+### `TokenEstimator`
+
+Protocol for model-aware token estimation. `Utf8TokenEstimator` is the dependency-free fallback,
+not an exact tokenizer.
+
+## Benefit accounting
+
+### `measure_benefit(...)`
+
+Builds a `BenefitMeasurement` from A/B or controlled comparison deltas. Mining cost is amortized by
+expected reuse count before computing net benefit.
+
+### `BenefitLedger`
+
+- `record(measurement)` appends a measurement;
+- `measurements(experience_id)` reads raw measurements;
+- `aggregate(experience_id, revision_id=None, window=None)` returns a sample-weighted aggregate.
+
+### `BenefitAggregate`
+
+Revision-scoped weighted means for quality, success, tokens, latency and net benefit, plus sample,
+measurement and truncation counts.
+
+### `BreakEvenPolicy`
+
+Versioned, configurable thresholds. `evaluate(aggregate)` returns `BenefitDecision`;
+`accepts(measurement)` remains a single-measurement compatibility helper.
+
+### `BenefitDecision`
+
+Contains policy identity/version, acceptance status, machine-readable rejection reasons and the
+evaluated aggregate.
+
+## Retrieval and advice
+
+### `RetrievalQuery`
+
+Text plus optional task type, framework, available tools, result limit and minimum score.
+
+### `ExperienceRetriever`
+
+Searches only Active and applicable definitions, then performs deterministic lexical ranking with
+an evidence contribution.
+
+### `Advice`
+
+Source-attributed untrusted reference with experience/revision IDs, score, source runs and optional
+registered-tool steps.
+
+### `AdviceBudget`, `render_semantic_advice(...)`
+
+Compatibility helpers for bounding legacy semantic summaries. New efficient integrations should
+prefer structured delta rules and `RuleSelector`.
+
+## Replay and package exchange
+
+### `validate_dag(strategy)`
+
+Validates node identities, dependencies and cycles before execution.
+
+### `ReplayExecutor`
+
+Executes a validated strategy using the explicit `ToolRegistry`, approval policy, retries and a
+caller-provided verifier. See class signatures/type hints for construction details.
+
+### `export_package(repository, destination, *, publisher="")`
+
+Exports eligible definitions to a checksummed `.exp` package.
+
+### `import_package(repository, source)`
+
+Validates bounds/checksums and imports definitions as Quarantined, with deduplication.
+
+## Optional adapters
+
+Import these from `agent_experience.adapters`:
+
+- `create_langchain_middleware(repository, ...)`;
+- `LangGraphEventBridge(repository, ...)`;
+- `create_langgraph_callback(bridge)`;
+- `ObservedClientSession(session, repository, trust_domain=..., ...)`;
+- `MCPServerIdentity`;
+- `wrap_agent(...)`, `WrappedAgent` and capability declarations.
+
+Optional framework imports are delayed. If an extra is missing, the factory raises an `ImportError`
+with the required install command instead of breaking core package import.
+
+## CLI
+
+`agent-exp --version` prints the installed version. Subcommands are `inspect`, `verify`, `extract`,
+`candidates`, `benefits`, `export`, and `import`. Run `agent-exp COMMAND --help` for arguments.

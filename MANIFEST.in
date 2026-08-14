@@ -1,0 +1,12 @@
+include README.md LICENSE CHANGELOG.md CONTRIBUTING.md CODE_OF_CONDUCT.md SECURITY.md
+include pyproject.toml setup.py
+recursive-include protos *.proto
+recursive-include src *.py *.pyi py.typed
+recursive-include tests *.py
+recursive-include docs *.md
+recursive-include docs/assets *.png
+recursive-include examples *.py
+exclude examples/deepseek_demo_local.py
+prune demo-output
+prune demo-repository
+global-exclude *.py[cod] __pycache__ .DS_Store *.db *.sqlite *.bin *.exp .env

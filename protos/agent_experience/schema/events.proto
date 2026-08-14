@@ -1,0 +1,65 @@
+syntax = "proto3";
+
+package agent_experience.v1;
+
+import "google/protobuf/any.proto";
+import "google/protobuf/timestamp.proto";
+
+enum EventType {
+  EVENT_TYPE_UNSPECIFIED = 0;
+  RUN_STARTED = 1;
+  RUN_COMPLETED = 2;
+  RUN_FAILED = 3;
+  RUN_CANCELLED = 4;
+  MODEL_CALL_STARTED = 10;
+  MODEL_CALL_COMPLETED = 11;
+  MODEL_CALL_FAILED = 12;
+  TOOL_CALL_STARTED = 20;
+  TOOL_CALL_COMPLETED = 21;
+  TOOL_CALL_FAILED = 22;
+  NODE_STARTED = 30;
+  NODE_COMPLETED = 31;
+  NODE_FAILED = 32;
+  ROUTE_SELECTED = 33;
+  OUTCOME_EVALUATED = 40;
+  APPROVAL_REQUESTED = 50;
+  APPROVAL_DECIDED = 51;
+  ARTIFACT_PRODUCED = 60;
+  EXPERIENCE_CANDIDATE_CREATED = 70;
+  EXPERIENCE_REVISION_PUBLISHED = 71;
+  EXPERIENCE_ACTIVATED = 72;
+  EXPERIENCE_DEPRECATED = 73;
+  EXPERIENCE_QUARANTINED = 74;
+  EXPERIENCE_TOMBSTONED = 75;
+  EXPERIENCE_EVALUATED = 76;
+  EXPERIENCE_ADVISED = 77;
+  EXPERIENCE_REPLAY_STARTED = 78;
+  EXPERIENCE_REPLAY_COMPLETED = 79;
+  MCP_SESSION_INITIALIZED = 80;
+  MCP_CAPABILITY_SNAPSHOT = 81;
+  MCP_RESOURCE_READ = 82;
+  MCP_PROMPT_RENDERED = 83;
+  EXPERIENCE_REPLAY_FAILED = 84;
+  EXPERIENCE_IMPORTED = 85;
+  EXPERIENCE_RULE_SELECTED = 86;
+  EXPERIENCE_REJECTED_BY_BUDGET = 87;
+  EXPERIENCE_BENEFIT_EVALUATED = 88;
+  EXPERIENCE_APPLIED = 89;
+}
+
+message EventEnvelope {
+  string event_id = 1;
+  EventType event_type = 2;
+  uint32 schema_version = 3;
+  google.protobuf.Timestamp timestamp = 4;
+  string repository_id = 5;
+  string run_id = 6;
+  uint64 sequence_number = 7;
+  string correlation_id = 8;
+  string causation_id = 9;
+  string producer = 10;
+  google.protobuf.Any payload = 11;
+  bytes payload_hash = 12;
+  bytes signature = 13;
+  map<string, string> attributes = 14;
+}

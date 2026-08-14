@@ -1,0 +1,88 @@
+[build-system]
+requires = ["setuptools>=77", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "agent-experience"
+version = "0.1.0"
+description = "Event-sourced experience capture, validation, and reuse for AI agents."
+readme = "README.md"
+requires-python = ">=3.10"
+license = "Apache-2.0"
+license-files = ["LICENSE"]
+authors = [{ name = "LittleRockets" }]
+keywords = ["agents", "ai", "langchain", "langgraph", "mcp", "experience"]
+classifiers = [
+  "Development Status :: 2 - Pre-Alpha",
+  "Intended Audience :: Developers",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Typing :: Typed",
+]
+dependencies = ["protobuf>=5.29,<8"]
+
+[project.optional-dependencies]
+langchain = ["langchain>=1,<2"]
+langgraph = ["langgraph>=1,<2"]
+mcp = ["mcp>=1,<2"]
+dev = [
+  "build>=1.2,<2",
+  "grpcio-tools>=1.70,<2",
+  "mypy>=1.14,<2",
+  "pytest>=8,<10",
+  "pytest-asyncio>=0.25,<2",
+  "ruff>=0.9,<1",
+  "twine>=6,<7",
+  "types-protobuf>=5,<7",
+]
+
+[project.scripts]
+agent-exp = "agent_experience.cli.main:main"
+
+[project.urls]
+Homepage = "https://github.com/LittleRockets/AgentExperience"
+Documentation = "https://github.com/LittleRockets/AgentExperience#readme"
+Issues = "https://github.com/LittleRockets/AgentExperience/issues"
+Source = "https://github.com/LittleRockets/AgentExperience"
+Changelog = "https://github.com/LittleRockets/AgentExperience/blob/main/CHANGELOG.md"
+
+[tool.setuptools]
+package-dir = { "" = "src" }
+include-package-data = true
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+agent_experience = ["py.typed", "schema/*.pyi"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra"
+
+[tool.ruff]
+target-version = "py310"
+line-length = 100
+extend-exclude = ["src/agent_experience/schema/*_pb2.py", "src/agent_experience/schema/*.pyi"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "ASYNC"]
+
+[tool.mypy]
+python_version = "3.10"
+strict = true
+packages = ["agent_experience"]
+exclude = ["src/agent_experience/schema/.*"]
+
+[[tool.mypy.overrides]]
+module = ["agent_experience.schema.*"]
+follow_imports = "skip"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = ["agent_experience.adapters.langchain", "agent_experience.adapters.langgraph"]
+disable_error_code = ["misc", "valid-type"]

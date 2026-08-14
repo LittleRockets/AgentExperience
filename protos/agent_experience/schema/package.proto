@@ -1,0 +1,27 @@
+syntax = "proto3";
+
+package agent_experience.v1;
+
+import "google/protobuf/timestamp.proto";
+
+message PackageFile {
+  string path = 1;
+  uint64 size = 2;
+  bytes sha256 = 3;
+}
+
+message ExperiencePackageManifest {
+  uint32 package_format_version = 1;
+  string package_id = 2;
+  string source_repository_id = 3;
+  google.protobuf.Timestamp exported_at = 4;
+  string publisher = 5;
+  repeated string revision_ids = 6;
+  repeated PackageFile files = 7;
+  string embedding_provider = 8;
+  string embedding_model = 9;
+  uint32 embedding_dimension = 10;
+  repeated string required_tool_contract_ids = 11;
+  bytes signature = 12;
+}
+

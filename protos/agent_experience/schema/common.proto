@@ -1,0 +1,40 @@
+syntax = "proto3";
+
+package agent_experience.v1;
+
+message TypedValue {
+  oneof kind {
+    string string_value = 1;
+    sint64 integer_value = 2;
+    double double_value = 3;
+    bool boolean_value = 4;
+    bytes bytes_value = 5;
+    ListValue list_value = 6;
+    MapValue map_value = 7;
+    ValueReference reference = 8;
+    bool null_value = 9;
+  }
+}
+
+message ListValue {
+  repeated TypedValue values = 1;
+}
+
+message MapValue {
+  map<string, TypedValue> fields = 1;
+}
+
+message ValueReference {
+  enum ReferenceType {
+    REFERENCE_TYPE_UNSPECIFIED = 0;
+    RUN_INPUT = 1;
+    NODE_OUTPUT = 2;
+    SECRET = 3;
+    ARTIFACT = 4;
+  }
+
+  ReferenceType type = 1;
+  string path = 2;
+  string source_node_id = 3;
+}
+

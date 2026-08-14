@@ -1,0 +1,191 @@
+syntax = "proto3";
+
+package agent_experience.v1;
+
+import "google/protobuf/timestamp.proto";
+import "agent_experience/schema/common.proto";
+
+enum ExperienceStatus {
+  EXPERIENCE_STATUS_UNSPECIFIED = 0;
+  DRAFT = 1;
+  CANDIDATE = 2;
+  VALIDATED = 3;
+  ACTIVE = 4;
+  DEPRECATED = 5;
+  QUARANTINED = 6;
+  TOMBSTONED = 7;
+}
+
+enum ExperienceType {
+  EXPERIENCE_TYPE_UNSPECIFIED = 0;
+  TASK_STRATEGY = 1;
+  TOOL_ROUTING = 2;
+  PARAMETERIZATION = 3;
+  RECOVERY = 4;
+  VALIDATION = 5;
+  CONSTRAINT = 6;
+}
+
+enum ExperienceMode {
+  EXPERIENCE_MODE_UNSPECIFIED = 0;
+  PROMPT_DELTA = 1;
+  WORKFLOW = 2;
+  TOOL_ROUTING_MODE = 3;
+  VALIDATOR_MODE = 4;
+  EXACT_CACHE_MODE = 5;
+  RECOVERY_MODE = 6;
+}
+
+enum RuleOperator {
+  RULE_OPERATOR_UNSPECIFIED = 0;
+  EQUALS = 1;
+  NOT_EQUALS = 2;
+  LESS_THAN_OR_EQUAL = 3;
+  GREATER_THAN_OR_EQUAL = 4;
+  CONTAINS = 5;
+  REQUIRES = 6;
+  FORBIDS = 7;
+}
+
+message BaselineProfile {
+  string baseline_id = 1;
+  string baseline_version = 2;
+  bytes system_prompt_hash = 3;
+  bytes workflow_hash = 4;
+  bytes toolset_hash = 5;
+  string model_id = 6;
+  bytes output_contract_hash = 7;
+}
+
+message DeltaRule {
+  string rule_id = 1;
+  string path = 2;
+  RuleOperator operator = 3;
+  TypedValue value = 4;
+  repeated string evidence_run_ids = 5;
+  double confidence = 6;
+  string rationale = 7;
+  sint32 priority = 8;
+  uint32 estimated_tokens = 9;
+}
+
+message ExperienceDelta {
+  BaselineProfile baseline = 1;
+  repeated DeltaRule rules = 2;
+  uint32 estimated_prompt_tokens = 3;
+  bytes canonical_hash = 4;
+}
+
+message ToolContract {
+  string contract_id = 1;
+  string provider = 2;
+  string name = 3;
+  string version_constraint = 4;
+  bytes input_schema_hash = 5;
+  bytes output_schema_hash = 6;
+  bool idempotent = 7;
+  bool has_external_side_effects = 8;
+}
+
+message RetryPolicy {
+  uint32 max_attempts = 1;
+  uint64 initial_backoff_ms = 2;
+  double backoff_multiplier = 3;
+}
+
+message DAGNode {
+  string node_id = 1;
+  ToolContract tool = 2;
+  map<string, TypedValue> arguments = 3;
+  repeated string depends_on = 4;
+  uint64 timeout_ms = 5;
+  RetryPolicy retry = 6;
+  string fallback_node_id = 7;
+  string compensation_node_id = 8;
+  bool requires_approval = 9;
+}
+
+message DAG {
+  repeated DAGNode nodes = 1;
+  repeated string output_node_ids = 2;
+}
+
+message Applicability {
+  repeated string task_types = 1;
+  repeated string trigger_keywords = 2;
+  repeated string required_frameworks = 3;
+  repeated ToolContract required_tools = 4;
+  repeated string preconditions = 5;
+  repeated string forbidden_conditions = 6;
+  google.protobuf.Timestamp expires_at = 7;
+}
+
+message ExperienceDefinition {
+  string experience_id = 1;
+  string revision_id = 2;
+  repeated string parent_revision_ids = 3;
+  uint64 generation = 4;
+  uint32 schema_version = 5;
+  bytes content_hash = 6;
+  ExperienceType experience_type = 7;
+  ExperienceStatus status = 8;
+  google.protobuf.Timestamp created_at = 9;
+  string created_by = 10;
+  string summary = 11;
+  Applicability applicability = 12;
+  DAG strategy = 13;
+  repeated string success_criteria = 14;
+  repeated string known_counterexamples = 15;
+  repeated string source_run_ids = 16;
+  bool replay_allowed = 17;
+  bool exact_cache_allowed = 18;
+  ExperienceMode mode = 19;
+  ExperienceDelta delta = 20;
+  uint64 mining_input_tokens = 21;
+  uint64 mining_output_tokens = 22;
+  uint64 mining_latency_ms = 23;
+}
+
+message BenefitMeasurement {
+  string measurement_id = 1;
+  string experience_id = 2;
+  string revision_id = 3;
+  string baseline_id = 4;
+  string run_id = 5;
+  double quality_delta = 6;
+  double success_rate_delta = 7;
+  sint64 input_token_delta = 8;
+  sint64 output_token_delta = 9;
+  sint64 latency_ms_delta = 10;
+  sint32 tool_call_delta = 11;
+  sint32 retry_delta = 12;
+  uint64 mining_tokens = 13;
+  uint64 mining_latency_ms = 14;
+  double quality_weight = 15;
+  double token_cost_weight = 16;
+  double latency_cost_weight = 17;
+  double net_benefit = 18;
+  uint32 sample_count = 19;
+  bool output_truncated = 20;
+  google.protobuf.Timestamp measured_at = 21;
+}
+
+message EvaluationEvent {
+  string evaluation_id = 1;
+  string experience_id = 2;
+  string revision_id = 3;
+  string run_id = 4;
+  enum Outcome {
+    OUTCOME_UNSPECIFIED = 0;
+    SUCCESS = 1;
+    FAILURE = 2;
+    PARTIAL = 3;
+    UNKNOWN = 4;
+  }
+  Outcome outcome = 5;
+  double confidence = 6;
+  repeated string evidence_references = 7;
+  string evaluator_id = 8;
+  string evaluator_version = 9;
+  google.protobuf.Timestamp evaluated_at = 10;
+}

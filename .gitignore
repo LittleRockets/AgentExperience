@@ -1,0 +1,60 @@
+# Python bytecode and native extensions
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.pyd
+
+# Packaging
+build/
+dist/
+wheel-output/
+*.egg-info/
+*.egg
+
+# Virtual environments and local configuration
+.venv/
+.venv-*/
+venv/
+env/
+.env
+.env.*
+!.env.example
+
+# Test, type-check and coverage caches
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+.hypothesis/
+tests/.tmp/
+.test-runtime/
+.test-run-*/
+
+# Editors and operating systems
+.idea/
+.vscode/
+*.code-workspace
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# AgentExperience runtime data and exported packages
+*.bin
+*.exp
+*.db
+*.sqlite
+*.sqlite3
+demo-repository/
+demo-output/
+
+# Local examples: never commit API keys
+examples/deepseek_demo_local.py
+
+# Local coding-agent state
+.agents/
+.codex/
