@@ -27,6 +27,19 @@ from .experience import (
 from .migration import export_package, import_package
 from .observer import ObservationContext, ToolRegistry, ToolSpec, capture, current_context
 from .outcome import Evaluation, Outcome, OutcomeEvaluator, PredicateEvaluator
+from .package import (
+    CapabilityBinding,
+    CompatibilityStatus,
+    MountPolicy,
+    MountReport,
+    MountStatus,
+    PackageInspection,
+    PackageSigner,
+    PackageSource,
+    ReasonCode,
+    TrustStatus,
+    TrustStore,
+)
 from .protocols import BaselineResolver, FeatureExtractor, TokenEstimator, Utf8TokenEstimator
 from .replay import DAGValidationError, ReplayExecutor, ReplayResult, validate_dag
 from .retrieval import Advice, ExperienceRetriever, RetrievalQuery
@@ -57,10 +70,16 @@ __all__ = [
     "LogRecord",
     "LifecycleManager",
     "MiningResult",
+    "MountPolicy",
+    "MountReport",
+    "MountStatus",
     "ObservationContext",
     "Outcome",
     "OutcomeEvaluator",
     "PredicateEvaluator",
+    "PackageInspection",
+    "PackageSigner",
+    "PackageSource",
     "ProjectionRunner",
     "PromotionPolicy",
     "ReplayExecutor",
@@ -70,6 +89,7 @@ __all__ = [
     "Repository",
     "RuleSelection",
     "RuleSelector",
+    "ReasonCode",
     "RunFeatures",
     "RunTrace",
     "SQLiteProjection",
@@ -77,6 +97,10 @@ __all__ = [
     "ToolSpec",
     "TokenBudget",
     "TokenEstimator",
+    "TrustStatus",
+    "TrustStore",
+    "CompatibilityStatus",
+    "CapabilityBinding",
     "TraceEntry",
     "Utf8TokenEstimator",
     "build_baseline_profile",

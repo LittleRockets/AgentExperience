@@ -10,6 +10,15 @@ message PackageFile {
   bytes sha256 = 3;
 }
 
+message PackageCapability {
+  string capability_id = 1;
+  string version_constraint = 2;
+  bytes input_schema_hash = 3;
+  bytes output_schema_hash = 4;
+  bool optional = 5;
+  repeated string aliases = 6;
+}
+
 message ExperiencePackageManifest {
   uint32 package_format_version = 1;
   string package_id = 2;
@@ -23,5 +32,16 @@ message ExperiencePackageManifest {
   uint32 embedding_dimension = 10;
   repeated string required_tool_contract_ids = 11;
   bytes signature = 12;
+  string package_name = 13;
+  string package_version = 14;
+  string agent_experience_requires = 15;
+  string python_requires = 16;
+  repeated string required_frameworks = 17;
+  repeated PackageCapability required_capabilities = 18;
+  string signature_algorithm = 19;
+  string signing_key_id = 20;
+  bytes signing_public_key = 21;
+  bytes package_digest = 22;
+  repeated string supersedes_package_ids = 23;
+  uint32 experience_schema_version = 24;
 }
-

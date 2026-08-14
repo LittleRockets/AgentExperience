@@ -73,9 +73,79 @@ def document_agent(document: str) -> dict[str, object]:
 The Skill receives an automatic identity and code-version fingerprint. Its source code is not stored
 as experience.
 
+## 3. Portable experience packages
+
+### Mount in one line
+
+```python
+report = experience.mount("./shared.exp")
+print(report)
+```
+
+`MountReport` shows identity/version, digest, publisher trust, imported/duplicate counts, compatible
+experiences, missing bindings and a machine-readable reason. Mounting never activates external
+experience: imported revisions are quarantined and replay/cache permissions are disabled.
+
+Mount several packages after Tools and Skills register automatically:
+
+```python
+experience = agent_experience(
+    "./experience-data",
+    experiences=["./team.exp", "./organization.exp"],
+)
+```
+
+### Stable capability binding
+
+Most applications keep the bare decorator. Authors who publish a capability across projects can add
+one portable contract without supplying storage paths or internal IDs:
+
+```python
+@experience.tool(capability="weather/current-conditions@1")
+def get_weather(city: str):
+    return weather_client.get(city)
+```
+
+Exact portable contracts bind automatically. Missing or ambiguous capabilities stay in
+`NEEDS_BINDING` and are never silently selected.
+
+### Trust and local validation
+
+```python
+public_key = Path("publisher-public.key").read_bytes()
+experience.trust.add(public_key, alias="team-publisher")
+
+report = experience.validate_mount(
+    "team-patterns",
+    verifier=lambda definition: run_local_contract_tests(definition),
+    max_runs=6,
+)
+```
+
+Publisher trust and local validity are separate. Signing proves origin; the receiving application
+decides correctness. Packages never carry executable verifiers.
+
+### Export, upgrade, rollback and unmount
+
+```python
+experience.export(
+    "team-patterns.exp",
+    name="team-patterns",
+    version="1.0.0",
+    signer=signer,
+)
+
+experience.upgrade_mount("team-patterns", "./team-patterns-1.1.0.exp")
+experience.rollback_mount("team-patterns")
+experience.unmount("team-patterns")
+```
+
+Operations are append-only and auditable. Upgrade failure leaves the selected generation unchanged;
+unmount disables package revisions without erasing their audit trail.
+
 The remaining sections describe advanced low-level APIs. Most users do not need them.
 
-## 3. Low-level capture and outcomes
+## 4. Low-level capture and outcomes
 
 Completion is an observation; success is an evaluation. Supply a stable evaluator ID/version and
 deterministic evidence whenever possible.
@@ -106,7 +176,7 @@ The decorator preserves return values and exceptions. Synchronous and asynchrono
 supported. A default redaction policy sanitizes observed values; applications should still avoid
 passing secrets into model/tool payloads unnecessarily.
 
-## 4. Low-level candidate extraction
+## 5. Low-level candidate extraction
 
 ```python
 from agent_experience import CandidateService, Repository
@@ -118,7 +188,7 @@ with Repository(repository_path) as repository:
 Extraction is deduplicated by semantic content hash. A successful run can create a candidate, but
 cannot make it active by itself.
 
-## 5. Mine a minimal baseline-relative delta
+## 6. Mine a minimal baseline-relative delta
 
 An application adapter converts verified runs into generic feature paths. These names are owned by
 the application or integration—not by the core library.
@@ -156,7 +226,7 @@ candidate = definition_from_delta(mined, task_type="support")
 The deterministic miner does not call an LLM. It intersects facts from independent successful
 runs, removes baseline facts and records mining token/latency cost.
 
-## 6. Select rules within a token budget
+## 7. Select rules within a token budget
 
 ```python
 from agent_experience import RuleSelector, TokenBudget
@@ -181,7 +251,7 @@ Only `PROMPT_DELTA` rules are rendered by `RuleSelector`. Inject the selected te
 untrusted guidance; it must not override system, security or permission policy. For model-accurate
 token counts, implement the `TokenEstimator` protocol with the model's tokenizer.
 
-## 7. Measure benefit before activation
+## 8. Measure benefit before activation
 
 ```python
 from agent_experience import BenefitLedger, BreakEvenPolicy, measure_benefit
@@ -222,7 +292,7 @@ Choose quality/token/latency weights before seeing experiment results. Do not tu
 make a benchmark look positive. Aggregate only comparable trials and keep training evidence separate
 from holdout or production evidence.
 
-## 8. Lifecycle
+## 9. Lifecycle
 
 `LifecycleManager` creates immutable revisions. Default transitions include:
 
@@ -235,7 +305,7 @@ CANDIDATE → VALIDATED → ACTIVE → DEPRECATED
 Use `promote()` for evidence thresholds and `promote_with_benefit()` to require an acceptable
 revision-scoped benefit aggregate. Manual approval is required for activation by default.
 
-## 9. Framework adapters
+## 10. Framework adapters
 
 ### LangChain
 
@@ -279,7 +349,7 @@ result = await observed.call_tool("search", {"query": "example"})
 MCP content is untrusted. The proxy observes server identity, advertised capabilities and public
 client operations; it does not grant replay permission.
 
-## 10. Inspect and export
+## 11. Inspect and export
 
 ```bash
 agent-exp verify experience-data
@@ -294,7 +364,7 @@ Import always quarantines experience for local review:
 agent-exp import another-repository reviewed.exp
 ```
 
-## 11. Production checklist
+## 12. Production checklist
 
 - Pin the package version and back up the event directory.
 - Give every evaluator, baseline, tool contract and policy an explicit version.
@@ -307,7 +377,7 @@ agent-exp import another-repository reviewed.exp
 - Monitor benefit and quarantine regressions.
 - Use an external backend before requiring multi-process or distributed writes.
 
-## 12. Run the transparent DeepSeek demo
+## 13. Run the transparent DeepSeek demo
 
 The example is deliberately verbose and incurs model API charges. It makes seven model calls: three
 independent evidence runs, an Austria A/B holdout, and a Germany A/B generalization test. Experience

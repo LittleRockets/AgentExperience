@@ -136,10 +136,13 @@ class LifecycleReplayMigrationTests(unittest.TestCase):
                 source.append_event(
                     events_pb2.EXPERIENCE_ACTIVATED, run_id="", producer="test", payload=active
                 )
-                export_package(source, package, publisher="unit-test")
+                with self.assertWarns(DeprecationWarning):
+                    export_package(source, package, publisher="unit-test")
             with Repository(root / "target") as target:
-                self.assertEqual(import_package(target, package), 1)
-                self.assertEqual(import_package(target, package), 0)
+                with self.assertWarns(DeprecationWarning):
+                    self.assertEqual(import_package(target, package), 1)
+                with self.assertWarns(DeprecationWarning):
+                    self.assertEqual(import_package(target, package), 0)
                 imported = next(
                     event
                     for event in target.events()

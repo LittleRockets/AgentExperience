@@ -10,7 +10,7 @@ import queue
 import threading
 import time
 import uuid
-from collections.abc import Callable
+from collections.abc import Callable, Iterable
 from pathlib import Path
 from typing import Any, ParamSpec, TypeVar, cast, overload
 
@@ -19,6 +19,16 @@ from agent_experience.observer.context import (
     ObservationContext,
     current_context,
     observation_context,
+)
+from agent_experience.package import (
+    CapabilityCatalog,
+    MountPolicy,
+    MountReport,
+    PackageInspection,
+    PackageService,
+    PackageSigner,
+    PackageSource,
+    TrustStore,
 )
 from agent_experience.schema import events_pb2
 from agent_experience.security import RedactionPolicy
@@ -48,10 +58,15 @@ class ExperienceRuntime:
         *,
         redaction: RedactionPolicy | None = None,
         minimum_confidence: float = 0.8,
+        experiences: Iterable[str | Path] = (),
+        mount_policy: MountPolicy | None = None,
+        package_source: PackageSource | None = None,
     ) -> None:
         self.path = Path(path)
         self.redaction = redaction or RedactionPolicy()
         self.minimum_confidence = minimum_confidence
+        self.mount_policy = mount_policy or MountPolicy()
+        self.package_source = package_source
         self._repository: Repository | None = None
         self._repository_lock = threading.RLock()
         self._jobs: queue.Queue[object] = queue.Queue()
@@ -59,6 +74,9 @@ class ExperienceRuntime:
         self._worker_error: BaseException | None = None
         self._closed = False
         self._gateway = InstrumentationGateway(self)
+        self._capabilities = CapabilityCatalog()
+        self._frameworks: set[str] = set()
+        self._pending_experiences = list(experiences)
         atexit.register(self.close)
 
     @property
@@ -106,10 +124,30 @@ class ExperienceRuntime:
 
         return decorate(function) if function is not None else decorate
 
-    def tool(self, function: Callable[P, R]) -> Callable[P, R]:
+    @overload
+    def tool(self, function: Callable[P, R]) -> Callable[P, R]: ...
+
+    @overload
+    def tool(self, *, capability: str = "") -> Callable[[Callable[P, R]], Callable[P, R]]: ...
+
+    def tool(
+        self,
+        function: Callable[P, R] | None = None,
+        *,
+        capability: str = "",
+    ) -> Callable[P, R] | Callable[[Callable[P, R]], Callable[P, R]]:
         """Observe a Python tool with an automatically generated stable identity."""
 
+        def decorate(target: Callable[P, R]) -> Callable[P, R]:
+            return self._decorate_tool(target, capability)
+
+        return decorate(function) if function is not None else decorate
+
+    def _decorate_tool(self, function: Callable[P, R], capability: str) -> Callable[P, R]:
+        """Create one tool wrapper and register its portable capability."""
+
         identity = _callable_identity(function, "tool")
+        self._capabilities.register_callable(function, identity, capability=capability)
         if inspect.iscoroutinefunction(function):
 
             @functools.wraps(function)
@@ -133,6 +171,7 @@ class ExperienceRuntime:
 
         from agent_experience.adapters import create_langchain_middleware
 
+        self._frameworks.add("langchain")
         return create_langchain_middleware(self._gateway, redaction=self.redaction)
 
     def langgraph(self, *, run_id: str | None = None) -> Any:
@@ -140,6 +179,7 @@ class ExperienceRuntime:
 
         from agent_experience.adapters import LangGraphEventBridge
 
+        self._frameworks.add("langgraph")
         return LangGraphEventBridge(
             self._gateway,
             run_id=run_id,
@@ -157,6 +197,7 @@ class ExperienceRuntime:
 
         from agent_experience.adapters import ObservedClientSession
 
+        self._frameworks.add("mcp")
         return ObservedClientSession(
             session,
             self._gateway,
@@ -165,9 +206,85 @@ class ExperienceRuntime:
             redaction=self.redaction,
         )
 
+    def inspect_package(self, reference: str | Path, *, sha256: str = "") -> PackageInspection:
+        """Inspect a local/HTTPS package without mutating the mount catalog."""
+
+        return self._package_service().inspect(reference, sha256=sha256)
+
+    @property
+    def trust(self) -> TrustStore:
+        """Repository-local trusted package signing keys."""
+
+        return self._package_service().trust_store
+
+    def mount(
+        self,
+        reference: str | Path,
+        *,
+        sha256: str = "",
+        bindings: dict[str, str] | None = None,
+    ) -> MountReport:
+        """Safely mount one package in quarantine and return a complete report."""
+
+        return self._package_service().mount(reference, sha256=sha256, bindings=bindings)
+
+    def mounts(self) -> tuple[MountReport, ...]:
+        """Return current mounted-package states."""
+
+        self._ensure_pending_mounts()
+        return self._package_service().mounts()
+
+    def validate_mount(
+        self,
+        package_name: str,
+        verifier: Callable[[Any], bool],
+        *,
+        max_runs: int = 6,
+    ) -> MountReport:
+        """Apply bounded caller-controlled local validation to a quarantined mount."""
+
+        return self._package_service().validate_mount(package_name, verifier, max_runs=max_runs)
+
+    def upgrade_mount(
+        self, package_name: str, reference: str | Path, *, sha256: str = ""
+    ) -> MountReport:
+        """Mount a new immutable package generation without disrupting the old one."""
+
+        return self._package_service().upgrade(package_name, reference, sha256=sha256)
+
+    def rollback_mount(self, package_name: str) -> MountReport:
+        """Move the mount view back to its previous recorded generation."""
+
+        return self._package_service().rollback(package_name)
+
+    def unmount(self, package_name: str) -> MountReport:
+        """Disable a mounted package while preserving its audit trail."""
+
+        return self._package_service().unmount(package_name)
+
+    def export(
+        self,
+        destination: str | Path,
+        *,
+        name: str,
+        version: str,
+        publisher: str = "",
+        signer: PackageSigner | None = None,
+    ) -> Path:
+        """Export validated/active experience as a self-describing v2 package."""
+
+        return self._package_service().export(
+            destination,
+            name=name,
+            version=version,
+            publisher=publisher,
+            signer=signer,
+        )
+
     def flush(self) -> None:
         """Wait for queued candidate consolidation and surface worker errors."""
 
+        self._ensure_pending_mounts()
         self._jobs.join()
         if self._worker_error is not None:
             error = self._worker_error
@@ -330,6 +447,7 @@ class ExperienceRuntime:
     def _start_run(
         self, identity: str, args: tuple[Any, ...], kwargs: dict[str, Any]
     ) -> tuple[str, int, str]:
+        self._ensure_pending_mounts()
         run_id = str(uuid.uuid4())
         event = self.repository.append_event(
             events_pb2.RUN_STARTED,
@@ -475,12 +593,35 @@ class ExperienceRuntime:
             finally:
                 self._jobs.task_done()
 
+    def _package_service(self) -> PackageService:
+        return PackageService(
+            self.repository,
+            capabilities=self._capabilities,
+            frameworks=frozenset(self._frameworks),
+            policy=self.mount_policy,
+            source=self.package_source,
+        )
+
+    def _ensure_pending_mounts(self) -> None:
+        if not self._pending_experiences:
+            return
+        pending, self._pending_experiences = self._pending_experiences, []
+        try:
+            for reference in pending:
+                self.mount(reference)
+        except BaseException:
+            self._pending_experiences = pending
+            raise
+
 
 def agent_experience(
     path: str | Path = ".agent-experience",
     *,
     redaction: RedactionPolicy | None = None,
     minimum_confidence: float = 0.8,
+    experiences: Iterable[str | Path] = (),
+    mount_policy: MountPolicy | None = None,
+    package_source: PackageSource | None = None,
 ) -> ExperienceRuntime:
     """Create the single path-scoped runtime used by run/tool decorators."""
 
@@ -488,6 +629,9 @@ def agent_experience(
         path,
         redaction=redaction,
         minimum_confidence=minimum_confidence,
+        experiences=experiences,
+        mount_policy=mount_policy,
+        package_source=package_source,
     )
 
 

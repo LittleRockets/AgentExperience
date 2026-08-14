@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import time
 import uuid
+import warnings
 import zipfile
 from pathlib import Path
 
@@ -20,6 +21,11 @@ _MANIFEST = "manifest.pb"
 
 
 def export_package(repository: Repository, destination: Path, *, publisher: str = "") -> Path:
+    warnings.warn(
+        "export_package() writes legacy v1 packages; use ExperienceRuntime.export()",
+        DeprecationWarning,
+        stacklevel=2,
+    )
     records = b"".join(
         len(raw).to_bytes(4, "big") + raw
         for raw in (
@@ -51,6 +57,11 @@ def export_package(repository: Repository, destination: Path, *, publisher: str 
 
 
 def import_package(repository: Repository, source: Path) -> int:
+    warnings.warn(
+        "import_package() is deprecated; use ExperienceRuntime.mount()",
+        DeprecationWarning,
+        stacklevel=2,
+    )
     with zipfile.ZipFile(source) as archive:
         names = set(archive.namelist())
         if names != {_MANIFEST, _RECORDS}:

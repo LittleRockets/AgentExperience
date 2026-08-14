@@ -40,6 +40,32 @@ They never require another storage path or Repository:
 Framework-native registration is still explicit because silently monkey-patching framework objects
 would be unsafe and version-fragile.
 
+### Portable package API
+
+`ExperienceRuntime.mount(reference, *, sha256="", bindings=None) -> MountReport` resolves a local
+path or HTTPS package, verifies its bounded v1/v2 container, checks signature/trust and compatibility,
+deduplicates content and imports new revisions in quarantine.
+
+`inspect_package(reference, *, sha256="") -> PackageInspection` performs the same package, source
+and security checks without changing the mount catalog. `mounts()` returns the selected generation
+for every logical package.
+
+`validate_mount(name, verifier, *, max_runs=6)` runs bounded, caller-controlled local definition
+validation. Packages never carry executable verifiers.
+
+`upgrade_mount(name, reference)`, `rollback_mount(name)` and `unmount(name)` provide auditable,
+reversible lifecycle operations. New generations do not replace the old view until mounting commits.
+
+`export(destination, *, name, version, publisher="", signer=None)` exports only validated/active
+definitions as a deterministic v2 package. Source/evidence run IDs are removed and secret-like
+content is rejected.
+
+`ExperienceRuntime.trust` exposes the repository-local `TrustStore` for Ed25519 public keys.
+`MountPolicy` centralizes unsigned/legacy acceptance, size, compression, network and offline limits.
+
+Public result/status types are `PackageInspection`, `MountReport`, `MountStatus`, `TrustStatus`,
+`CompatibilityStatus`, `CapabilityBinding` and `ReasonCode`.
+
 ### `ExperienceRuntime.flush()` / `close()`
 
 `flush()` waits for background candidate consolidation and surfaces worker failures. `close()`

@@ -2,6 +2,7 @@
 
 - [Tutorial](tutorial.md): installation, capture, mining, selection, benefit measurement and framework adapters.
 - [API guide](api-guide.md): supported public objects grouped by responsibility.
+- [Portable packages](tutorial.md#3-portable-experience-packages): mount, trust, validate, upgrade and unmount shared experience.
 - [Architecture decisions](adr/0001-initial-foundation.md): public foundation decisions and constraints.
 - [DeepSeek demo](../examples/deepseek_experience_demo.py): transparent paid end-to-end experiment.
 

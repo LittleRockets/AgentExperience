@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://raw.githubusercontent.com/LittleRockets/AgentExperience/main/docs/assets/agent-experience-logo.png" alt="AgentExperience" width="520">
+  <img src="https://raw.githubusercontent.com/LittleRockets/AgentExperience/main/AgentExperience_logo.png" alt="AgentExperience" width="520">
 </p>
 
 <h1 align="center">AgentExperience</h1>
@@ -138,6 +138,49 @@ graph_events = experience.langgraph()
 session = experience.mcp(session, trust_domain="company-internal")
 ```
 
+## Portable experience packages
+
+Share validated experience as a data-only `.exp` package, then mount it with one line:
+
+```python
+report = experience.mount("./team-patterns.exp")
+print(report)
+```
+
+Or declare packages once when creating the Runtime; mounting is deferred until decorated Tools and
+Skills have registered their capabilities:
+
+```python
+experience = agent_experience(
+    "./experience-data",
+    experiences=["./team-patterns.exp"],
+)
+```
+
+The Runtime verifies checksums and optional Ed25519 signatures, checks Python/framework/capability
+compatibility, creates explainable automatic bindings, deduplicates content and returns a complete
+`MountReport`. Imported experience always starts in quarantine. A checksum, trusted publisher or
+successful function return can never activate external experience by itself.
+
+Export only validated or active experience:
+
+```python
+from agent_experience import PackageSigner
+
+signer = PackageSigner.load("publisher.private-key")
+experience.export(
+    "team-patterns.exp",
+    name="team-patterns",
+    version="1.0.0",
+    publisher="my-team",
+    signer=signer,
+)
+```
+
+For a locally trusted publisher, add its Ed25519 public key once through `experience.trust` or the
+CLI. Signature trust proves package origin; caller-controlled local validation still proves whether
+the experience works in the receiving environment.
+
 ## What is observed?
 
 | Source | Observed signals | Not assumed |
@@ -208,10 +251,15 @@ agent-exp candidates ./experience-repo
 agent-exp benefits ./experience-repo
 agent-exp export ./experience-repo shared.exp
 agent-exp import ./other-repo shared.exp
+agent-exp package inspect ./experience-repo shared.exp
+agent-exp package mount ./experience-repo shared.exp
+agent-exp package list ./experience-repo
+agent-exp package unmount ./experience-repo team-patterns
+agent-exp trust add ./experience-repo publisher-public.pem
 ```
 
-Imported experiences are quarantined until locally reviewed. `.exp` files are data packages, not
-trusted executable programs.
+The original `export/import` commands remain temporarily available for legacy v1 packages. New code
+should use the `package` commands. `.exp` files are data packages, not trusted executable programs.
 
 ## Security model
 

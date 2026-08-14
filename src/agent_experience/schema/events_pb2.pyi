@@ -52,6 +52,18 @@ class EventType(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     EXPERIENCE_REJECTED_BY_BUDGET: _ClassVar[EventType]
     EXPERIENCE_BENEFIT_EVALUATED: _ClassVar[EventType]
     EXPERIENCE_APPLIED: _ClassVar[EventType]
+    PACKAGE_INSPECTED: _ClassVar[EventType]
+    PACKAGE_OPERATION_STARTED: _ClassVar[EventType]
+    PACKAGE_MOUNTED: _ClassVar[EventType]
+    PACKAGE_MOUNT_FAILED: _ClassVar[EventType]
+    CAPABILITY_BOUND: _ClassVar[EventType]
+    PACKAGE_VALIDATION_STARTED: _ClassVar[EventType]
+    PACKAGE_VALIDATION_COMPLETED: _ClassVar[EventType]
+    PACKAGE_UPGRADED: _ClassVar[EventType]
+    PACKAGE_ROLLED_BACK: _ClassVar[EventType]
+    PACKAGE_UNMOUNTED: _ClassVar[EventType]
+    PACKAGE_OPERATION_COMMITTED: _ClassVar[EventType]
+
 EVENT_TYPE_UNSPECIFIED: EventType
 RUN_STARTED: EventType
 RUN_COMPLETED: EventType
@@ -91,9 +103,35 @@ EXPERIENCE_RULE_SELECTED: EventType
 EXPERIENCE_REJECTED_BY_BUDGET: EventType
 EXPERIENCE_BENEFIT_EVALUATED: EventType
 EXPERIENCE_APPLIED: EventType
+PACKAGE_INSPECTED: EventType
+PACKAGE_OPERATION_STARTED: EventType
+PACKAGE_MOUNTED: EventType
+PACKAGE_MOUNT_FAILED: EventType
+CAPABILITY_BOUND: EventType
+PACKAGE_VALIDATION_STARTED: EventType
+PACKAGE_VALIDATION_COMPLETED: EventType
+PACKAGE_UPGRADED: EventType
+PACKAGE_ROLLED_BACK: EventType
+PACKAGE_UNMOUNTED: EventType
+PACKAGE_OPERATION_COMMITTED: EventType
 
 class EventEnvelope(_message.Message):
-    __slots__ = ("event_id", "event_type", "schema_version", "timestamp", "repository_id", "run_id", "sequence_number", "correlation_id", "causation_id", "producer", "payload", "payload_hash", "signature", "attributes")
+    __slots__ = (
+        "event_id",
+        "event_type",
+        "schema_version",
+        "timestamp",
+        "repository_id",
+        "run_id",
+        "sequence_number",
+        "correlation_id",
+        "causation_id",
+        "producer",
+        "payload",
+        "payload_hash",
+        "signature",
+        "attributes",
+    )
     class AttributesEntry(_message.Message):
         __slots__ = ("key", "value")
         KEY_FIELD_NUMBER: _ClassVar[int]
@@ -101,6 +139,7 @@ class EventEnvelope(_message.Message):
         key: str
         value: str
         def __init__(self, key: _Optional[str] = ..., value: _Optional[str] = ...) -> None: ...
+
     EVENT_ID_FIELD_NUMBER: _ClassVar[int]
     EVENT_TYPE_FIELD_NUMBER: _ClassVar[int]
     SCHEMA_VERSION_FIELD_NUMBER: _ClassVar[int]
@@ -129,4 +168,20 @@ class EventEnvelope(_message.Message):
     payload_hash: bytes
     signature: bytes
     attributes: _containers.ScalarMap[str, str]
-    def __init__(self, event_id: _Optional[str] = ..., event_type: _Optional[_Union[EventType, str]] = ..., schema_version: _Optional[int] = ..., timestamp: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., repository_id: _Optional[str] = ..., run_id: _Optional[str] = ..., sequence_number: _Optional[int] = ..., correlation_id: _Optional[str] = ..., causation_id: _Optional[str] = ..., producer: _Optional[str] = ..., payload: _Optional[_Union[_any_pb2.Any, _Mapping]] = ..., payload_hash: _Optional[bytes] = ..., signature: _Optional[bytes] = ..., attributes: _Optional[_Mapping[str, str]] = ...) -> None: ...
+    def __init__(
+        self,
+        event_id: _Optional[str] = ...,
+        event_type: _Optional[_Union[EventType, str]] = ...,
+        schema_version: _Optional[int] = ...,
+        timestamp: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ...,
+        repository_id: _Optional[str] = ...,
+        run_id: _Optional[str] = ...,
+        sequence_number: _Optional[int] = ...,
+        correlation_id: _Optional[str] = ...,
+        causation_id: _Optional[str] = ...,
+        producer: _Optional[str] = ...,
+        payload: _Optional[_Union[_any_pb2.Any, _Mapping]] = ...,
+        payload_hash: _Optional[bytes] = ...,
+        signature: _Optional[bytes] = ...,
+        attributes: _Optional[_Mapping[str, str]] = ...,
+    ) -> None: ...

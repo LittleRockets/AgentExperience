@@ -8,7 +8,17 @@ from typing import ClassVar as _ClassVar, Optional as _Optional, Union as _Union
 DESCRIPTOR: _descriptor.FileDescriptor
 
 class TypedValue(_message.Message):
-    __slots__ = ("string_value", "integer_value", "double_value", "boolean_value", "bytes_value", "list_value", "map_value", "reference", "null_value")
+    __slots__ = (
+        "string_value",
+        "integer_value",
+        "double_value",
+        "boolean_value",
+        "bytes_value",
+        "list_value",
+        "map_value",
+        "reference",
+        "null_value",
+    )
     STRING_VALUE_FIELD_NUMBER: _ClassVar[int]
     INTEGER_VALUE_FIELD_NUMBER: _ClassVar[int]
     DOUBLE_VALUE_FIELD_NUMBER: _ClassVar[int]
@@ -27,13 +37,26 @@ class TypedValue(_message.Message):
     map_value: MapValue
     reference: ValueReference
     null_value: bool
-    def __init__(self, string_value: _Optional[str] = ..., integer_value: _Optional[int] = ..., double_value: _Optional[float] = ..., boolean_value: _Optional[bool] = ..., bytes_value: _Optional[bytes] = ..., list_value: _Optional[_Union[ListValue, _Mapping]] = ..., map_value: _Optional[_Union[MapValue, _Mapping]] = ..., reference: _Optional[_Union[ValueReference, _Mapping]] = ..., null_value: _Optional[bool] = ...) -> None: ...
+    def __init__(
+        self,
+        string_value: _Optional[str] = ...,
+        integer_value: _Optional[int] = ...,
+        double_value: _Optional[float] = ...,
+        boolean_value: _Optional[bool] = ...,
+        bytes_value: _Optional[bytes] = ...,
+        list_value: _Optional[_Union[ListValue, _Mapping]] = ...,
+        map_value: _Optional[_Union[MapValue, _Mapping]] = ...,
+        reference: _Optional[_Union[ValueReference, _Mapping]] = ...,
+        null_value: _Optional[bool] = ...,
+    ) -> None: ...
 
 class ListValue(_message.Message):
     __slots__ = ("values",)
     VALUES_FIELD_NUMBER: _ClassVar[int]
     values: _containers.RepeatedCompositeFieldContainer[TypedValue]
-    def __init__(self, values: _Optional[_Iterable[_Union[TypedValue, _Mapping]]] = ...) -> None: ...
+    def __init__(
+        self, values: _Optional[_Iterable[_Union[TypedValue, _Mapping]]] = ...
+    ) -> None: ...
 
 class MapValue(_message.Message):
     __slots__ = ("fields",)
@@ -43,7 +66,10 @@ class MapValue(_message.Message):
         VALUE_FIELD_NUMBER: _ClassVar[int]
         key: str
         value: TypedValue
-        def __init__(self, key: _Optional[str] = ..., value: _Optional[_Union[TypedValue, _Mapping]] = ...) -> None: ...
+        def __init__(
+            self, key: _Optional[str] = ..., value: _Optional[_Union[TypedValue, _Mapping]] = ...
+        ) -> None: ...
+
     FIELDS_FIELD_NUMBER: _ClassVar[int]
     fields: _containers.MessageMap[str, TypedValue]
     def __init__(self, fields: _Optional[_Mapping[str, TypedValue]] = ...) -> None: ...
@@ -57,6 +83,7 @@ class ValueReference(_message.Message):
         NODE_OUTPUT: _ClassVar[ValueReference.ReferenceType]
         SECRET: _ClassVar[ValueReference.ReferenceType]
         ARTIFACT: _ClassVar[ValueReference.ReferenceType]
+
     REFERENCE_TYPE_UNSPECIFIED: ValueReference.ReferenceType
     RUN_INPUT: ValueReference.ReferenceType
     NODE_OUTPUT: ValueReference.ReferenceType
@@ -68,4 +95,9 @@ class ValueReference(_message.Message):
     type: ValueReference.ReferenceType
     path: str
     source_node_id: str
-    def __init__(self, type: _Optional[_Union[ValueReference.ReferenceType, str]] = ..., path: _Optional[str] = ..., source_node_id: _Optional[str] = ...) -> None: ...
+    def __init__(
+        self,
+        type: _Optional[_Union[ValueReference.ReferenceType, str]] = ...,
+        path: _Optional[str] = ...,
+        source_node_id: _Optional[str] = ...,
+    ) -> None: ...

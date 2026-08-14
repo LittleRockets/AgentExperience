@@ -52,6 +52,7 @@ class RuleOperator(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     CONTAINS: _ClassVar[RuleOperator]
     REQUIRES: _ClassVar[RuleOperator]
     FORBIDS: _ClassVar[RuleOperator]
+
 EXPERIENCE_STATUS_UNSPECIFIED: ExperienceStatus
 DRAFT: ExperienceStatus
 CANDIDATE: ExperienceStatus
@@ -84,7 +85,15 @@ REQUIRES: RuleOperator
 FORBIDS: RuleOperator
 
 class BaselineProfile(_message.Message):
-    __slots__ = ("baseline_id", "baseline_version", "system_prompt_hash", "workflow_hash", "toolset_hash", "model_id", "output_contract_hash")
+    __slots__ = (
+        "baseline_id",
+        "baseline_version",
+        "system_prompt_hash",
+        "workflow_hash",
+        "toolset_hash",
+        "model_id",
+        "output_contract_hash",
+    )
     BASELINE_ID_FIELD_NUMBER: _ClassVar[int]
     BASELINE_VERSION_FIELD_NUMBER: _ClassVar[int]
     SYSTEM_PROMPT_HASH_FIELD_NUMBER: _ClassVar[int]
@@ -99,10 +108,29 @@ class BaselineProfile(_message.Message):
     toolset_hash: bytes
     model_id: str
     output_contract_hash: bytes
-    def __init__(self, baseline_id: _Optional[str] = ..., baseline_version: _Optional[str] = ..., system_prompt_hash: _Optional[bytes] = ..., workflow_hash: _Optional[bytes] = ..., toolset_hash: _Optional[bytes] = ..., model_id: _Optional[str] = ..., output_contract_hash: _Optional[bytes] = ...) -> None: ...
+    def __init__(
+        self,
+        baseline_id: _Optional[str] = ...,
+        baseline_version: _Optional[str] = ...,
+        system_prompt_hash: _Optional[bytes] = ...,
+        workflow_hash: _Optional[bytes] = ...,
+        toolset_hash: _Optional[bytes] = ...,
+        model_id: _Optional[str] = ...,
+        output_contract_hash: _Optional[bytes] = ...,
+    ) -> None: ...
 
 class DeltaRule(_message.Message):
-    __slots__ = ("rule_id", "path", "operator", "value", "evidence_run_ids", "confidence", "rationale", "priority", "estimated_tokens")
+    __slots__ = (
+        "rule_id",
+        "path",
+        "operator",
+        "value",
+        "evidence_run_ids",
+        "confidence",
+        "rationale",
+        "priority",
+        "estimated_tokens",
+    )
     RULE_ID_FIELD_NUMBER: _ClassVar[int]
     PATH_FIELD_NUMBER: _ClassVar[int]
     OPERATOR_FIELD_NUMBER: _ClassVar[int]
@@ -121,7 +149,18 @@ class DeltaRule(_message.Message):
     rationale: str
     priority: int
     estimated_tokens: int
-    def __init__(self, rule_id: _Optional[str] = ..., path: _Optional[str] = ..., operator: _Optional[_Union[RuleOperator, str]] = ..., value: _Optional[_Union[_common_pb2.TypedValue, _Mapping]] = ..., evidence_run_ids: _Optional[_Iterable[str]] = ..., confidence: _Optional[float] = ..., rationale: _Optional[str] = ..., priority: _Optional[int] = ..., estimated_tokens: _Optional[int] = ...) -> None: ...
+    def __init__(
+        self,
+        rule_id: _Optional[str] = ...,
+        path: _Optional[str] = ...,
+        operator: _Optional[_Union[RuleOperator, str]] = ...,
+        value: _Optional[_Union[_common_pb2.TypedValue, _Mapping]] = ...,
+        evidence_run_ids: _Optional[_Iterable[str]] = ...,
+        confidence: _Optional[float] = ...,
+        rationale: _Optional[str] = ...,
+        priority: _Optional[int] = ...,
+        estimated_tokens: _Optional[int] = ...,
+    ) -> None: ...
 
 class ExperienceDelta(_message.Message):
     __slots__ = ("baseline", "rules", "estimated_prompt_tokens", "canonical_hash")
@@ -133,10 +172,25 @@ class ExperienceDelta(_message.Message):
     rules: _containers.RepeatedCompositeFieldContainer[DeltaRule]
     estimated_prompt_tokens: int
     canonical_hash: bytes
-    def __init__(self, baseline: _Optional[_Union[BaselineProfile, _Mapping]] = ..., rules: _Optional[_Iterable[_Union[DeltaRule, _Mapping]]] = ..., estimated_prompt_tokens: _Optional[int] = ..., canonical_hash: _Optional[bytes] = ...) -> None: ...
+    def __init__(
+        self,
+        baseline: _Optional[_Union[BaselineProfile, _Mapping]] = ...,
+        rules: _Optional[_Iterable[_Union[DeltaRule, _Mapping]]] = ...,
+        estimated_prompt_tokens: _Optional[int] = ...,
+        canonical_hash: _Optional[bytes] = ...,
+    ) -> None: ...
 
 class ToolContract(_message.Message):
-    __slots__ = ("contract_id", "provider", "name", "version_constraint", "input_schema_hash", "output_schema_hash", "idempotent", "has_external_side_effects")
+    __slots__ = (
+        "contract_id",
+        "provider",
+        "name",
+        "version_constraint",
+        "input_schema_hash",
+        "output_schema_hash",
+        "idempotent",
+        "has_external_side_effects",
+    )
     CONTRACT_ID_FIELD_NUMBER: _ClassVar[int]
     PROVIDER_FIELD_NUMBER: _ClassVar[int]
     NAME_FIELD_NUMBER: _ClassVar[int]
@@ -153,7 +207,17 @@ class ToolContract(_message.Message):
     output_schema_hash: bytes
     idempotent: bool
     has_external_side_effects: bool
-    def __init__(self, contract_id: _Optional[str] = ..., provider: _Optional[str] = ..., name: _Optional[str] = ..., version_constraint: _Optional[str] = ..., input_schema_hash: _Optional[bytes] = ..., output_schema_hash: _Optional[bytes] = ..., idempotent: _Optional[bool] = ..., has_external_side_effects: _Optional[bool] = ...) -> None: ...
+    def __init__(
+        self,
+        contract_id: _Optional[str] = ...,
+        provider: _Optional[str] = ...,
+        name: _Optional[str] = ...,
+        version_constraint: _Optional[str] = ...,
+        input_schema_hash: _Optional[bytes] = ...,
+        output_schema_hash: _Optional[bytes] = ...,
+        idempotent: _Optional[bool] = ...,
+        has_external_side_effects: _Optional[bool] = ...,
+    ) -> None: ...
 
 class RetryPolicy(_message.Message):
     __slots__ = ("max_attempts", "initial_backoff_ms", "backoff_multiplier")
@@ -163,17 +227,37 @@ class RetryPolicy(_message.Message):
     max_attempts: int
     initial_backoff_ms: int
     backoff_multiplier: float
-    def __init__(self, max_attempts: _Optional[int] = ..., initial_backoff_ms: _Optional[int] = ..., backoff_multiplier: _Optional[float] = ...) -> None: ...
+    def __init__(
+        self,
+        max_attempts: _Optional[int] = ...,
+        initial_backoff_ms: _Optional[int] = ...,
+        backoff_multiplier: _Optional[float] = ...,
+    ) -> None: ...
 
 class DAGNode(_message.Message):
-    __slots__ = ("node_id", "tool", "arguments", "depends_on", "timeout_ms", "retry", "fallback_node_id", "compensation_node_id", "requires_approval")
+    __slots__ = (
+        "node_id",
+        "tool",
+        "arguments",
+        "depends_on",
+        "timeout_ms",
+        "retry",
+        "fallback_node_id",
+        "compensation_node_id",
+        "requires_approval",
+    )
     class ArgumentsEntry(_message.Message):
         __slots__ = ("key", "value")
         KEY_FIELD_NUMBER: _ClassVar[int]
         VALUE_FIELD_NUMBER: _ClassVar[int]
         key: str
         value: _common_pb2.TypedValue
-        def __init__(self, key: _Optional[str] = ..., value: _Optional[_Union[_common_pb2.TypedValue, _Mapping]] = ...) -> None: ...
+        def __init__(
+            self,
+            key: _Optional[str] = ...,
+            value: _Optional[_Union[_common_pb2.TypedValue, _Mapping]] = ...,
+        ) -> None: ...
+
     NODE_ID_FIELD_NUMBER: _ClassVar[int]
     TOOL_FIELD_NUMBER: _ClassVar[int]
     ARGUMENTS_FIELD_NUMBER: _ClassVar[int]
@@ -192,7 +276,18 @@ class DAGNode(_message.Message):
     fallback_node_id: str
     compensation_node_id: str
     requires_approval: bool
-    def __init__(self, node_id: _Optional[str] = ..., tool: _Optional[_Union[ToolContract, _Mapping]] = ..., arguments: _Optional[_Mapping[str, _common_pb2.TypedValue]] = ..., depends_on: _Optional[_Iterable[str]] = ..., timeout_ms: _Optional[int] = ..., retry: _Optional[_Union[RetryPolicy, _Mapping]] = ..., fallback_node_id: _Optional[str] = ..., compensation_node_id: _Optional[str] = ..., requires_approval: _Optional[bool] = ...) -> None: ...
+    def __init__(
+        self,
+        node_id: _Optional[str] = ...,
+        tool: _Optional[_Union[ToolContract, _Mapping]] = ...,
+        arguments: _Optional[_Mapping[str, _common_pb2.TypedValue]] = ...,
+        depends_on: _Optional[_Iterable[str]] = ...,
+        timeout_ms: _Optional[int] = ...,
+        retry: _Optional[_Union[RetryPolicy, _Mapping]] = ...,
+        fallback_node_id: _Optional[str] = ...,
+        compensation_node_id: _Optional[str] = ...,
+        requires_approval: _Optional[bool] = ...,
+    ) -> None: ...
 
 class DAG(_message.Message):
     __slots__ = ("nodes", "output_node_ids")
@@ -200,10 +295,22 @@ class DAG(_message.Message):
     OUTPUT_NODE_IDS_FIELD_NUMBER: _ClassVar[int]
     nodes: _containers.RepeatedCompositeFieldContainer[DAGNode]
     output_node_ids: _containers.RepeatedScalarFieldContainer[str]
-    def __init__(self, nodes: _Optional[_Iterable[_Union[DAGNode, _Mapping]]] = ..., output_node_ids: _Optional[_Iterable[str]] = ...) -> None: ...
+    def __init__(
+        self,
+        nodes: _Optional[_Iterable[_Union[DAGNode, _Mapping]]] = ...,
+        output_node_ids: _Optional[_Iterable[str]] = ...,
+    ) -> None: ...
 
 class Applicability(_message.Message):
-    __slots__ = ("task_types", "trigger_keywords", "required_frameworks", "required_tools", "preconditions", "forbidden_conditions", "expires_at")
+    __slots__ = (
+        "task_types",
+        "trigger_keywords",
+        "required_frameworks",
+        "required_tools",
+        "preconditions",
+        "forbidden_conditions",
+        "expires_at",
+    )
     TASK_TYPES_FIELD_NUMBER: _ClassVar[int]
     TRIGGER_KEYWORDS_FIELD_NUMBER: _ClassVar[int]
     REQUIRED_FRAMEWORKS_FIELD_NUMBER: _ClassVar[int]
@@ -218,10 +325,43 @@ class Applicability(_message.Message):
     preconditions: _containers.RepeatedScalarFieldContainer[str]
     forbidden_conditions: _containers.RepeatedScalarFieldContainer[str]
     expires_at: _timestamp_pb2.Timestamp
-    def __init__(self, task_types: _Optional[_Iterable[str]] = ..., trigger_keywords: _Optional[_Iterable[str]] = ..., required_frameworks: _Optional[_Iterable[str]] = ..., required_tools: _Optional[_Iterable[_Union[ToolContract, _Mapping]]] = ..., preconditions: _Optional[_Iterable[str]] = ..., forbidden_conditions: _Optional[_Iterable[str]] = ..., expires_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ...) -> None: ...
+    def __init__(
+        self,
+        task_types: _Optional[_Iterable[str]] = ...,
+        trigger_keywords: _Optional[_Iterable[str]] = ...,
+        required_frameworks: _Optional[_Iterable[str]] = ...,
+        required_tools: _Optional[_Iterable[_Union[ToolContract, _Mapping]]] = ...,
+        preconditions: _Optional[_Iterable[str]] = ...,
+        forbidden_conditions: _Optional[_Iterable[str]] = ...,
+        expires_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ...,
+    ) -> None: ...
 
 class ExperienceDefinition(_message.Message):
-    __slots__ = ("experience_id", "revision_id", "parent_revision_ids", "generation", "schema_version", "content_hash", "experience_type", "status", "created_at", "created_by", "summary", "applicability", "strategy", "success_criteria", "known_counterexamples", "source_run_ids", "replay_allowed", "exact_cache_allowed", "mode", "delta", "mining_input_tokens", "mining_output_tokens", "mining_latency_ms")
+    __slots__ = (
+        "experience_id",
+        "revision_id",
+        "parent_revision_ids",
+        "generation",
+        "schema_version",
+        "content_hash",
+        "experience_type",
+        "status",
+        "created_at",
+        "created_by",
+        "summary",
+        "applicability",
+        "strategy",
+        "success_criteria",
+        "known_counterexamples",
+        "source_run_ids",
+        "replay_allowed",
+        "exact_cache_allowed",
+        "mode",
+        "delta",
+        "mining_input_tokens",
+        "mining_output_tokens",
+        "mining_latency_ms",
+    )
     EXPERIENCE_ID_FIELD_NUMBER: _ClassVar[int]
     REVISION_ID_FIELD_NUMBER: _ClassVar[int]
     PARENT_REVISION_IDS_FIELD_NUMBER: _ClassVar[int]
@@ -268,10 +408,57 @@ class ExperienceDefinition(_message.Message):
     mining_input_tokens: int
     mining_output_tokens: int
     mining_latency_ms: int
-    def __init__(self, experience_id: _Optional[str] = ..., revision_id: _Optional[str] = ..., parent_revision_ids: _Optional[_Iterable[str]] = ..., generation: _Optional[int] = ..., schema_version: _Optional[int] = ..., content_hash: _Optional[bytes] = ..., experience_type: _Optional[_Union[ExperienceType, str]] = ..., status: _Optional[_Union[ExperienceStatus, str]] = ..., created_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., created_by: _Optional[str] = ..., summary: _Optional[str] = ..., applicability: _Optional[_Union[Applicability, _Mapping]] = ..., strategy: _Optional[_Union[DAG, _Mapping]] = ..., success_criteria: _Optional[_Iterable[str]] = ..., known_counterexamples: _Optional[_Iterable[str]] = ..., source_run_ids: _Optional[_Iterable[str]] = ..., replay_allowed: _Optional[bool] = ..., exact_cache_allowed: _Optional[bool] = ..., mode: _Optional[_Union[ExperienceMode, str]] = ..., delta: _Optional[_Union[ExperienceDelta, _Mapping]] = ..., mining_input_tokens: _Optional[int] = ..., mining_output_tokens: _Optional[int] = ..., mining_latency_ms: _Optional[int] = ...) -> None: ...
+    def __init__(
+        self,
+        experience_id: _Optional[str] = ...,
+        revision_id: _Optional[str] = ...,
+        parent_revision_ids: _Optional[_Iterable[str]] = ...,
+        generation: _Optional[int] = ...,
+        schema_version: _Optional[int] = ...,
+        content_hash: _Optional[bytes] = ...,
+        experience_type: _Optional[_Union[ExperienceType, str]] = ...,
+        status: _Optional[_Union[ExperienceStatus, str]] = ...,
+        created_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ...,
+        created_by: _Optional[str] = ...,
+        summary: _Optional[str] = ...,
+        applicability: _Optional[_Union[Applicability, _Mapping]] = ...,
+        strategy: _Optional[_Union[DAG, _Mapping]] = ...,
+        success_criteria: _Optional[_Iterable[str]] = ...,
+        known_counterexamples: _Optional[_Iterable[str]] = ...,
+        source_run_ids: _Optional[_Iterable[str]] = ...,
+        replay_allowed: _Optional[bool] = ...,
+        exact_cache_allowed: _Optional[bool] = ...,
+        mode: _Optional[_Union[ExperienceMode, str]] = ...,
+        delta: _Optional[_Union[ExperienceDelta, _Mapping]] = ...,
+        mining_input_tokens: _Optional[int] = ...,
+        mining_output_tokens: _Optional[int] = ...,
+        mining_latency_ms: _Optional[int] = ...,
+    ) -> None: ...
 
 class BenefitMeasurement(_message.Message):
-    __slots__ = ("measurement_id", "experience_id", "revision_id", "baseline_id", "run_id", "quality_delta", "success_rate_delta", "input_token_delta", "output_token_delta", "latency_ms_delta", "tool_call_delta", "retry_delta", "mining_tokens", "mining_latency_ms", "quality_weight", "token_cost_weight", "latency_cost_weight", "net_benefit", "sample_count", "output_truncated", "measured_at")
+    __slots__ = (
+        "measurement_id",
+        "experience_id",
+        "revision_id",
+        "baseline_id",
+        "run_id",
+        "quality_delta",
+        "success_rate_delta",
+        "input_token_delta",
+        "output_token_delta",
+        "latency_ms_delta",
+        "tool_call_delta",
+        "retry_delta",
+        "mining_tokens",
+        "mining_latency_ms",
+        "quality_weight",
+        "token_cost_weight",
+        "latency_cost_weight",
+        "net_benefit",
+        "sample_count",
+        "output_truncated",
+        "measured_at",
+    )
     MEASUREMENT_ID_FIELD_NUMBER: _ClassVar[int]
     EXPERIENCE_ID_FIELD_NUMBER: _ClassVar[int]
     REVISION_ID_FIELD_NUMBER: _ClassVar[int]
@@ -314,10 +501,44 @@ class BenefitMeasurement(_message.Message):
     sample_count: int
     output_truncated: bool
     measured_at: _timestamp_pb2.Timestamp
-    def __init__(self, measurement_id: _Optional[str] = ..., experience_id: _Optional[str] = ..., revision_id: _Optional[str] = ..., baseline_id: _Optional[str] = ..., run_id: _Optional[str] = ..., quality_delta: _Optional[float] = ..., success_rate_delta: _Optional[float] = ..., input_token_delta: _Optional[int] = ..., output_token_delta: _Optional[int] = ..., latency_ms_delta: _Optional[int] = ..., tool_call_delta: _Optional[int] = ..., retry_delta: _Optional[int] = ..., mining_tokens: _Optional[int] = ..., mining_latency_ms: _Optional[int] = ..., quality_weight: _Optional[float] = ..., token_cost_weight: _Optional[float] = ..., latency_cost_weight: _Optional[float] = ..., net_benefit: _Optional[float] = ..., sample_count: _Optional[int] = ..., output_truncated: _Optional[bool] = ..., measured_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ...) -> None: ...
+    def __init__(
+        self,
+        measurement_id: _Optional[str] = ...,
+        experience_id: _Optional[str] = ...,
+        revision_id: _Optional[str] = ...,
+        baseline_id: _Optional[str] = ...,
+        run_id: _Optional[str] = ...,
+        quality_delta: _Optional[float] = ...,
+        success_rate_delta: _Optional[float] = ...,
+        input_token_delta: _Optional[int] = ...,
+        output_token_delta: _Optional[int] = ...,
+        latency_ms_delta: _Optional[int] = ...,
+        tool_call_delta: _Optional[int] = ...,
+        retry_delta: _Optional[int] = ...,
+        mining_tokens: _Optional[int] = ...,
+        mining_latency_ms: _Optional[int] = ...,
+        quality_weight: _Optional[float] = ...,
+        token_cost_weight: _Optional[float] = ...,
+        latency_cost_weight: _Optional[float] = ...,
+        net_benefit: _Optional[float] = ...,
+        sample_count: _Optional[int] = ...,
+        output_truncated: _Optional[bool] = ...,
+        measured_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ...,
+    ) -> None: ...
 
 class EvaluationEvent(_message.Message):
-    __slots__ = ("evaluation_id", "experience_id", "revision_id", "run_id", "outcome", "confidence", "evidence_references", "evaluator_id", "evaluator_version", "evaluated_at")
+    __slots__ = (
+        "evaluation_id",
+        "experience_id",
+        "revision_id",
+        "run_id",
+        "outcome",
+        "confidence",
+        "evidence_references",
+        "evaluator_id",
+        "evaluator_version",
+        "evaluated_at",
+    )
     class Outcome(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
         __slots__ = ()
         OUTCOME_UNSPECIFIED: _ClassVar[EvaluationEvent.Outcome]
@@ -325,6 +546,7 @@ class EvaluationEvent(_message.Message):
         FAILURE: _ClassVar[EvaluationEvent.Outcome]
         PARTIAL: _ClassVar[EvaluationEvent.Outcome]
         UNKNOWN: _ClassVar[EvaluationEvent.Outcome]
+
     OUTCOME_UNSPECIFIED: EvaluationEvent.Outcome
     SUCCESS: EvaluationEvent.Outcome
     FAILURE: EvaluationEvent.Outcome
@@ -350,4 +572,18 @@ class EvaluationEvent(_message.Message):
     evaluator_id: str
     evaluator_version: str
     evaluated_at: _timestamp_pb2.Timestamp
-    def __init__(self, evaluation_id: _Optional[str] = ..., experience_id: _Optional[str] = ..., revision_id: _Optional[str] = ..., run_id: _Optional[str] = ..., outcome: _Optional[_Union[EvaluationEvent.Outcome, str]] = ..., confidence: _Optional[float] = ..., evidence_references: _Optional[_Iterable[str]] = ..., evaluator_id: _Optional[str] = ..., evaluator_version: _Optional[str] = ..., evaluated_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ...) -> None: ...
+    def __init__(
+        self,
+        evaluation_id: _Optional[str] = ...,
+        experience_id: _Optional[str] = ...,
+        revision_id: _Optional[str] = ...,
+        run_id: _Optional[str] = ...,
+        outcome: _Optional[_Union[EvaluationEvent.Outcome, str]] = ...,
+        confidence: _Optional[float] = ...,
+        evidence_references: _Optional[_Iterable[str]] = ...,
+        evaluator_id: _Optional[str] = ...,
+        evaluator_version: _Optional[str] = ...,
+        evaluated_at: _Optional[
+            _Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]
+        ] = ...,
+    ) -> None: ...

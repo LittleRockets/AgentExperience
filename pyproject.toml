@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "agent-experience"
-version = "0.1.0"
+version = "0.1.1"
 description = "Event-sourced experience capture, validation, and reuse for AI agents."
 readme = "README.md"
 requires-python = ">=3.10"
@@ -23,7 +23,7 @@ classifiers = [
   "Programming Language :: Python :: 3.13",
   "Typing :: Typed",
 ]
-dependencies = ["protobuf>=5.29,<8"]
+dependencies = ["cryptography>=43,<47", "packaging>=24,<27", "protobuf>=5.29,<8"]
 
 [project.optional-dependencies]
 langchain = ["langchain>=1,<2"]

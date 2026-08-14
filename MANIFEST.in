@@ -1,4 +1,5 @@
 include README.md LICENSE CHANGELOG.md CONTRIBUTING.md CODE_OF_CONDUCT.md SECURITY.md
+include AgentExperience_logo.png
 include pyproject.toml setup.py
 recursive-include protos *.proto
 recursive-include src *.py *.pyi py.typed
@@ -9,4 +10,10 @@ recursive-include examples *.py
 exclude examples/deepseek_demo_local.py
 prune demo-output
 prune demo-repository
+prune .agent-experience
+prune experience-data
+prune .experience-trust
+prune package-output
+prune mount-reports
 global-exclude *.py[cod] __pycache__ .DS_Store *.db *.sqlite *.bin *.exp .env
+global-exclude *.private-key

@@ -51,6 +51,12 @@ Desktop.ini
 *.sqlite3
 demo-repository/
 demo-output/
+.agent-experience/
+experience-data/
+.experience-trust/
+package-output/
+mount-reports/
+*.private-key
 
 # Local examples: never commit API keys
 examples/deepseek_demo_local.py

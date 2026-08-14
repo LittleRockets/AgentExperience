@@ -4,6 +4,36 @@ All notable changes will be documented in this file.
 
 ## Unreleased
 
+## 0.1.1 - 2026-08-14
+
+### Added
+
+- Add one-line `ExperienceRuntime.mount()` and deferred `experiences=[...]` package mounting.
+- Add deterministic Experience Package v2 manifests with package identity, version, requirements,
+  content digest and Ed25519 publisher signatures.
+- Add repository-local public-key trust stores with key aliases and revocation.
+- Add automatic portable capability registration and explainable compatibility bindings.
+- Add bounded local/HTTPS package sources, SHA-256 pinning, content-addressed cache and offline mode.
+- Add immutable mount reports, package operation events and repository-scoped mutation locks.
+- Add local validation, atomic generation upgrade, rollback and audited unmount APIs.
+- Add `agent-exp package ...` and `agent-exp trust ...` command groups.
+
+### Security
+
+- External experience always enters quarantine with replay and exact-cache permissions disabled.
+- Package integrity or publisher trust never substitutes for caller-controlled local validation.
+- Package readers reject extra/duplicate paths, traversal, oversized content and compression bombs.
+- Exports strip run-source/evidence identifiers and reject content resembling credentials.
+- Signing private keys, generated packages, trust stores, caches and runtime repositories are ignored
+  and excluded from distribution artifacts.
+
+### Compatibility
+
+- Existing v0.1.0 repositories remain readable and require no destructive migration.
+- Legacy v1 `.exp` packages remain readable as unsigned, quarantined packages.
+- `export_package()` / `import_package()` and their CLI commands remain available with deprecation
+  guidance; new integrations should use Runtime/package APIs.
+
 ## 0.1.0 - 2026-08-14
 
 - Introduce the path-once decorator `ExperienceRuntime` as the primary API.
