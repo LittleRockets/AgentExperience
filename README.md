@@ -232,6 +232,10 @@ built-in backend is local, single-process and single-writer; it is not presented
 event log or multi-tenant service. Review the [architecture and roadmap](AgentExperience.md) before
 production adoption.
 
+## Star History
+
+[![Star History Chart](https://api.star-history.com/svg?repos=LittleRockets/AgentExperience&type=Date)](https://www.star-history.com/#LittleRockets/AgentExperience&Date)
+
 ## Development
 
 ```bash

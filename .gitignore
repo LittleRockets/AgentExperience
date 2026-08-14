@@ -58,3 +58,5 @@ examples/deepseek_demo_local.py
 # Local coding-agent state
 .agents/
 .codex/
+.wiki-staging/
+.wiki-publish/
