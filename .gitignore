@@ -60,3 +60,6 @@ examples/deepseek_demo_local.py
 .codex/
 .wiki-staging/
 .wiki-publish/
+
+# Private architecture planning document
+AgentExperience.md

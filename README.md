@@ -22,7 +22,6 @@
   <a href="#quick-start">Quick start</a> ·
   <a href="docs/tutorial.md">Tutorial</a> ·
   <a href="docs/api-guide.md">API guide</a> ·
-  <a href="AgentExperience.md">Architecture</a> ·
   <a href="CONTRIBUTING.md">Contributing</a>
 </p>
 
@@ -229,8 +228,8 @@ Please report vulnerabilities according to [SECURITY.md](SECURITY.md), not in a 
 
 AgentExperience is **pre-alpha**. Public APIs and persistent schemas may change before 1.0. The
 built-in backend is local, single-process and single-writer; it is not presented as a distributed
-event log or multi-tenant service. Review the [architecture and roadmap](AgentExperience.md) before
-production adoption.
+event log or multi-tenant service. Review the [API guide](docs/api-guide.md),
+[security policy](SECURITY.md) and changelog before production adoption.
 
 ## Star History
 
