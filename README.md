@@ -15,13 +15,11 @@
   <a href="https://pypi.org/project/agent-experience/"><img src="https://img.shields.io/pypi/pyversions/agent-experience" alt="Python versions"></a>
   <a href="https://pypistats.org/packages/agent-experience"><img src="https://img.shields.io/pypi/dm/agent-experience?color=06b6d4&label=downloads" alt="PyPI downloads"></a>
   <a href="https://github.com/LittleRockets/AgentExperience/actions/workflows/ci.yml"><img src="https://github.com/LittleRockets/AgentExperience/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
-  <a href="https://deepwiki.com/LittleRockets/AgentExperience"><img src="https://deepwiki.com/
-  badge.svg" alt="Ask DeepWiki"></a>
+  <a href="https://deepwiki.com/LittleRockets/AgentExperience"><img src="https://deepwiki.com/badge.svg" alt="Ask DeepWiki"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache--2.0-blue" alt="Apache-2.0"></a>
   <a href="https://github.com/LittleRockets/AgentExperience/stargazers"><img src="https://img.shields.io/github/stars/LittleRockets/AgentExperience?style=flat&color=fbbf24" alt="GitHub stars"></a>
   <a href="https://github.com/LittleRockets/AgentExperience"><img src="https://img.shields.io/badge/status-pre--alpha-f59e0b" alt="Pre-alpha"></a>
 </p>
-
 
 <p align="center">
   <a href="#-quick-start">Quick start</a> ·
