@@ -1,0 +1,54 @@
+{
+  "abstain_behavioral_parity": true,
+  "arms": {
+    "baseline": {
+      "abstention_rate": 0.0,
+      "adoption_rate": 0.0,
+      "irrelevant_success_rate": 1.0,
+      "mean_attempts": 1.5,
+      "median_latency_ms": 0.0004,
+      "relevant_success_rate": 0.0,
+      "selection_rate": 0.0,
+      "success_rate": 0.5,
+      "tasks": 100
+    },
+    "experience_assisted": {
+      "abstention_rate": 0.5,
+      "adoption_rate": 0.5,
+      "irrelevant_success_rate": 1.0,
+      "mean_attempts": 1.0,
+      "median_latency_ms": 1.87795,
+      "relevant_success_rate": 1.0,
+      "selection_rate": 0.5,
+      "success_rate": 1.0,
+      "tasks": 100
+    },
+    "instrumented_abstain": {
+      "abstention_rate": 1.0,
+      "adoption_rate": 0.0,
+      "irrelevant_success_rate": 1.0,
+      "mean_attempts": 1.5,
+      "median_latency_ms": 1.5824,
+      "relevant_success_rate": 0.0,
+      "selection_rate": 0.0,
+      "success_rate": 0.5,
+      "tasks": 100
+    }
+  },
+  "audits": {
+    "experience_assisted": {
+      "active_runs_after": 0,
+      "applied_events": 50,
+      "events_verified": 351
+    },
+    "instrumented_abstain": {
+      "active_runs_after": 0,
+      "applied_events": 0,
+      "events_verified": 300
+    }
+  },
+  "method": "deterministic synthetic functional baseline",
+  "negative_transfer_count": 0,
+  "passed": true,
+  "samples_per_cohort": 50
+}

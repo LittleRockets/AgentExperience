@@ -20,6 +20,11 @@ LANGGRAPH_CAPABILITIES = AdapterCapabilities(
     observes_graph_nodes=True,
     observes_routes=True,
     observes_interrupts=True,
+    supports_explicit_runs=True,
+    supports_selection=True,
+    supports_feedback=True,
+    supports_delegation=True,
+    supports_async=True,
     limitations=(
         "Typed event streaming requires LangGraph 1.2 or newer.",
         "Outcome evaluation must be supplied by the application.",

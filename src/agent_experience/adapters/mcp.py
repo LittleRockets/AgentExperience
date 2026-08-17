@@ -23,6 +23,7 @@ MCP_CAPABILITIES = AdapterCapabilities(
     level=CapabilityLevel.ACTION,
     observes_runs=False,
     observes_tools=True,
+    supports_async=True,
     limitations=(
         "Resources and rendered prompts are recorded as identities and hashes, not raw content.",
         "Session notification callbacks require host integration and are not intercepted "

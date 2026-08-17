@@ -57,6 +57,9 @@ experience-data/
 package-output/
 mount-reports/
 *.private-key
+*.log
+*.tmp
+*.bak
 
 # Local examples: never commit API keys
 examples/deepseek_demo_local.py
@@ -67,5 +70,7 @@ examples/deepseek_demo_local.py
 .wiki-staging/
 .wiki-publish/
 
-# Private architecture planning document
+# Private/source planning artifacts
+AgentExp.md
+analysis.pdf
 AgentExperience.md

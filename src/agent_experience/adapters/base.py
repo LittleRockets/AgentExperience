@@ -40,3 +40,21 @@ class AdapterCapabilities:
     supports_advice: bool = False
     supports_replay: bool = False
     limitations: tuple[str, ...] = ()
+    protocol_version: str = "0.2"
+    supports_explicit_runs: bool = False
+    supports_selection: bool = False
+    supports_feedback: bool = False
+    supports_delegation: bool = False
+    supports_async: bool = False
+
+    def __post_init__(self) -> None:
+        if not self.framework:
+            raise ValueError("adapter framework must not be empty")
+        if not self.integration_version:
+            raise ValueError("adapter integration_version must not be empty")
+        if self.protocol_version != "0.2":
+            raise ValueError(f"unsupported Experience Protocol version: {self.protocol_version}")
+        if self.supports_feedback and not self.supports_explicit_runs:
+            raise ValueError("feedback support requires explicit run support")
+        if self.supports_delegation and not self.supports_explicit_runs:
+            raise ValueError("delegation support requires explicit run support")

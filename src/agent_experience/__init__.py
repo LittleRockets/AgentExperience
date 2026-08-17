@@ -9,6 +9,14 @@ from .benefit import (
     BreakEvenPolicy,
     measure_benefit,
 )
+from .conformance import (
+    ConformanceCheck,
+    ConformanceReasonCode,
+    ConformanceReport,
+    ConformanceRequirements,
+    ConformanceStatus,
+    run_protocol_conformance,
+)
 from .experience import (
     CandidateExtractor,
     CandidateService,
@@ -46,6 +54,17 @@ from .retrieval import Advice, ExperienceRetriever, RetrievalQuery
 from .runtime import ExperienceRuntime, agent_experience
 from .security import RedactionPolicy
 from .selection import RuleSelection, RuleSelector, TokenBudget
+from .session import (
+    PROTOCOL_API_VERSION,
+    ExperienceRun,
+    HarnessState,
+    RunContext,
+    RunOutcome,
+    RunState,
+    RuntimeEvent,
+    SelectionDecision,
+    SelectionResult,
+)
 from .storage import Durability, EventLog, LogRecord, ProjectionRunner, Repository, SQLiteProjection
 
 __all__ = [
@@ -61,8 +80,14 @@ __all__ = [
     "ExperienceCatalog",
     "ExperienceRetriever",
     "ExperienceRuntime",
+    "ExperienceRun",
     "CandidateExtractor",
     "CandidateService",
+    "ConformanceCheck",
+    "ConformanceReport",
+    "ConformanceReasonCode",
+    "ConformanceRequirements",
+    "ConformanceStatus",
     "DeterministicMiner",
     "Evaluation",
     "FeatureExtractor",
@@ -77,6 +102,7 @@ __all__ = [
     "Outcome",
     "OutcomeEvaluator",
     "PredicateEvaluator",
+    "PROTOCOL_API_VERSION",
     "PackageInspection",
     "PackageSigner",
     "PackageSource",
@@ -86,6 +112,13 @@ __all__ = [
     "ReplayResult",
     "RetrievalQuery",
     "RedactionPolicy",
+    "RunContext",
+    "RunOutcome",
+    "RunState",
+    "RuntimeEvent",
+    "HarnessState",
+    "SelectionDecision",
+    "SelectionResult",
     "Repository",
     "RuleSelection",
     "RuleSelector",
@@ -113,6 +146,7 @@ __all__ = [
     "load_traces",
     "measure_benefit",
     "render_semantic_advice",
+    "run_protocol_conformance",
     "validate_dag",
     "__version__",
 ]

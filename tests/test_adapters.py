@@ -5,13 +5,22 @@ import unittest
 from pathlib import Path
 from types import SimpleNamespace
 
+from agent_experience import (
+    ConformanceRequirements,
+    HarnessState,
+    Outcome,
+    RunOutcome,
+    run_protocol_conformance,
+)
 from agent_experience.adapters import (
+    AdapterCapabilities,
     CapabilityLevel,
     LangGraphEventBridge,
     create_langchain_middleware,
     create_langgraph_callback,
 )
 from agent_experience.adapters.langchain import LANGCHAIN_CAPABILITIES, _tool_payload
+from agent_experience.adapters.langgraph import LANGGRAPH_CAPABILITIES
 from agent_experience.events.factory import unpack_payload
 from agent_experience.schema import events_pb2
 from agent_experience.security import RedactionPolicy
@@ -29,6 +38,17 @@ class AdapterTests(unittest.TestCase):
         self.assertEqual(LANGCHAIN_CAPABILITIES.level, CapabilityLevel.ACTION)
         self.assertTrue(LANGCHAIN_CAPABILITIES.observes_models)
         self.assertFalse(LANGCHAIN_CAPABILITIES.supports_replay)
+        self.assertEqual(LANGCHAIN_CAPABILITIES.protocol_version, "0.2")
+        self.assertTrue(LANGCHAIN_CAPABILITIES.supports_async)
+
+    def test_invalid_capability_dependencies_fail_closed(self) -> None:
+        with self.assertRaisesRegex(ValueError, "feedback support requires explicit"):
+            AdapterCapabilities(
+                framework="invalid",
+                integration_version="1",
+                level=CapabilityLevel.RUN,
+                supports_feedback=True,
+            )
 
     def test_langchain_tool_payload_uses_call_id_and_redacts(self) -> None:
         request = SimpleNamespace(
@@ -85,6 +105,52 @@ class AdapterTests(unittest.TestCase):
             )
             self.assertEqual(events[1].causation_id, events[0].event_id)
             self.assertEqual(unpack_payload(events[2])["route"], "search")
+
+    def test_langgraph_explicit_run_passes_behavioral_conformance(self) -> None:
+        with tempfile.TemporaryDirectory(dir=TEST_TEMP_ROOT) as directory:
+            from agent_experience import agent_experience
+
+            experience = agent_experience(Path(directory) / "repo")
+
+            def exercise(runtime: object) -> str:
+                self.assertIs(runtime, experience)
+                run = experience.start("graph task", harness="langgraph")
+                bridge = experience.langgraph(run=run)
+                bridge.consume(
+                    {
+                        "type": "tasks",
+                        "ns": (),
+                        "data": {"id": "task-1", "name": "work", "input": {}},
+                    }
+                )
+                bridge.consume(
+                    {
+                        "type": "tasks",
+                        "ns": (),
+                        "data": {"id": "task-1", "name": "work", "result": {"ok": True}},
+                    }
+                )
+                run.select(HarnessState(task="graph task", framework="langgraph"))
+                run.feedback(RunOutcome(Outcome.PARTIAL, metrics={"step": 1.0}))
+                child = run.start_child("delegated graph task")
+                child.complete(RunOutcome(Outcome.SUCCESS))
+                run.complete(RunOutcome(Outcome.SUCCESS))
+                return run.run_id
+
+            report = run_protocol_conformance(
+                experience,
+                "langgraph-explicit",
+                exercise,
+                capabilities=LANGGRAPH_CAPABILITIES,
+                requirements=ConformanceRequirements(
+                    selection=True,
+                    feedback=True,
+                    delegation=True,
+                    async_execution=True,
+                ),
+            )
+            self.assertTrue(report.passed, report.checks)
+            experience.close()
 
     def test_real_optional_adapter_classes_when_installed(self) -> None:
         try:

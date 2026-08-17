@@ -12,6 +12,32 @@ from google.protobuf import any_pb2, json_format, message, struct_pb2, timestamp
 
 from agent_experience.schema import events_pb2
 
+_KNOWN_EVENT_TYPES = frozenset(events_pb2.EventType.values())
+_OPTIONAL_COMPATIBILITY = "optional"
+
+
+def is_known_event_type(event_type: int) -> bool:
+    """Return whether this SDK version understands the event's lifecycle semantics."""
+
+    return event_type in _KNOWN_EVENT_TYPES
+
+
+def validate_event_compatibility(
+    event_type: int, attributes: Mapping[str, str] | None = None
+) -> None:
+    """Preserve explicitly optional unknown events and reject unknown critical semantics."""
+
+    if event_type == events_pb2.EVENT_TYPE_UNSPECIFIED:
+        raise ValueError("event_type must be specified")
+    if is_known_event_type(event_type):
+        return
+    compatibility = (attributes or {}).get("compatibility", "")
+    if compatibility != _OPTIONAL_COMPATIBILITY:
+        raise ValueError(
+            f"unknown critical event type {event_type}; only events marked "
+            "compatibility='optional' may be preserved"
+        )
+
 
 def create_event(
     *,
@@ -27,8 +53,7 @@ def create_event(
 ) -> events_pb2.EventEnvelope:
     """Create a canonical event whose payload hash covers deterministic payload bytes."""
 
-    if event_type == events_pb2.EVENT_TYPE_UNSPECIFIED:
-        raise ValueError("event_type must be specified")
+    validate_event_compatibility(event_type, attributes)
     if sequence_number <= 0:
         raise ValueError("sequence_number must be positive")
     if payload is None or isinstance(payload, Mapping):

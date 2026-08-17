@@ -111,6 +111,68 @@ standalone `@experience.tool` call also receives an automatic run context. Call
 `experience.flush()` only when a test or short-lived process must wait for background consolidation;
 normal applications are flushed when the runtime closes.
 
+### Harness / Loop protocol (v0.2 preview)
+
+Custom Harnesses can own their Loop while reporting structured evidence through an explicit,
+concurrency-safe run session:
+
+```python
+from agent_experience import HarnessState, Outcome, RunOutcome, agent_experience
+
+experience = agent_experience("./experience-data")
+run = experience.start("debug the failing test", harness="custom-loop")
+
+advice = run.select(HarnessState(task="debug the failing test"))
+# The Harness decides whether and how to use the advice, then executes its own Loop.
+
+run.complete(RunOutcome(Outcome.SUCCESS, result={"fixed": True}))
+```
+
+For an ACTIVE prompt delta, provide `harness_policy={"task_type": ...}` and an explicit `budget`
+containing `max_context_tokens`, `base_input_tokens`, and `reserved_output_tokens`. The selected
+bounded rules are returned in `SelectionResult.steps`; they are never injected automatically, and
+the Harness records adoption with `run.feedback(..., experience_id=..., accepted=True)`.
+
+`AgentExperience` does not own planning, tools, retries or stopping conditions. `select()` may
+return an explicit `ABSTAINED` result when no active experience is applicable. Use `run.observe()`
+for normalized runtime evidence and `run.feedback()` for intermediate outcome or adoption signals.
+The existing decorators remain supported and use the same runtime-owned event store.
+
+See [`examples/custom_loop_protocol.py`](examples/custom_loop_protocol.py) for a complete minimal
+Harness. Integrations can call `run_protocol_conformance()` in their test suite to verify that each
+run has one start, one terminal lifecycle event, valid correlation and integrity-checked payloads.
+Delegated work uses `run.start_child(...)`, preserving explicit parent/child lineage. Closing the
+Runtime cancels and audits any explicit sessions that were left active.
+
+Adapter capability declarations identify protocol version and whether an integration supports
+explicit runs, selection, feedback, delegation and async execution. Conformance requirements can
+therefore distinguish a verified capability from `UNSUPPORTED` or `INCONCLUSIVE`. Async Harnesses
+use the same session contract directly: event persistence is intentionally local and ordered, and
+AgentExperience does not hide synchronous persistence behind unmanaged worker threads.
+
+[`examples/codex_like_loop.py`](examples/codex_like_loop.py) demonstrates a bounded
+Observe → Act → Verify → Retry Loop. The Loop owns retries and stopping; AgentExperience only
+records evidence, returns advice and receives feedback.
+
+LangGraph can bind normalized graph events to the same explicit run:
+
+```python
+run = experience.start("execute graph", harness="langgraph")
+bridge = experience.langgraph(run=run)
+# Consume public LangGraph stream events through bridge.consume(...)
+run.complete(RunOutcome(Outcome.SUCCESS))
+```
+
+The bound EventSink rejects attempts to write another run ID or pass storage-specific options.
+`PROTOCOL_API_VERSION` identifies the frozen `0.2` public contract; compatibility tests snapshot
+the exported models, dataclass fields and lifecycle method parameters.
+
+The reproducible local effectiveness check is `python tools/protocol_effects.py`; the three-version
+New York example is `python examples/new_york_version_comparison.py`. See the
+[v0.2 effect report](docs/v0.2-effect-report.md) for the current latency, concurrency, abstention
+and negative-transfer-safety baseline, and the generated comparison report for the end-to-end
+Baseline/v0.1/v0.2 travel experiment.
+
 ### 🛠️ Observe an application Skill
 
 A Skill is simply a reusable callable capability. Decorate its public entry point exactly like a

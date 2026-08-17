@@ -31,6 +31,7 @@ LANGCHAIN_CAPABILITIES = AdapterCapabilities(
     observes_tools=True,
     supports_advice=False,
     supports_replay=False,
+    supports_async=True,
     limitations=(
         "Outcome evaluation must be supplied by the application.",
         "Graph node and route events require the LangGraph adapter.",

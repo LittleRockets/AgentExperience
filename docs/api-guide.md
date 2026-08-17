@@ -292,3 +292,144 @@ with the required install command instead of breaking core package import.
 
 `agent-exp --version` prints the installed version. Subcommands are `inspect`, `verify`, `extract`,
 `candidates`, `benefits`, `export`, and `import`. Run `agent-exp COMMAND --help` for arguments.
+# Experience Protocol (v0.2 preview)
+
+External Harnesses should use an explicit run session while retaining ownership of their Loop:
+
+```python
+from agent_experience import (
+    HarnessState,
+    Outcome,
+    RunOutcome,
+    RuntimeEvent,
+    agent_experience,
+)
+from agent_experience.schema import events_pb2
+
+experience = agent_experience("./experience-data")
+run = experience.start(
+    "repair the failing test",
+    agent="coding-agent",
+    harness="custom-loop",
+    task_id="issue-42",
+    tools=("python://tests", "python://editor"),
+)
+run.observe(RuntimeEvent(events_pb2.NODE_STARTED, {"node_id": "inspect"}))
+selection = run.select(HarnessState(task="repair the failing test"))
+run.feedback(RunOutcome(Outcome.UNKNOWN, metrics={"attempt": 1.0}))
+run.complete(RunOutcome(Outcome.SUCCESS, result={"fixed": True}))
+```
+
+The session is terminal after `complete()` or `cancel()`. Later operations raise `RuntimeError`
+rather than silently appending invalid evidence. Selection returns advice or an explicit abstention;
+the Harness remains responsible for planning, execution, verification, retries and stopping.
+
+An ACTIVE `PROMPT_DELTA` remains advice rather than executable control. Pass its applicability and
+budget through the frozen v0.2 extension maps, then explicitly adopt and report the decision:
+
+```python
+state = HarnessState(
+    task="plan a two-day New York trip",
+    harness_policy={"task_type": "travel_plan", "baseline_paths": ()},
+    budget={
+        "max_context_tokens": 8192,
+        "base_input_tokens": 100,
+        "reserved_output_tokens": 3000,
+        "max_experience_tokens": 96,
+    },
+)
+result = run.select(state)[0]
+if result.decision.value == "selected":
+    # The Harness may place result.steps in its own bounded prompt/control surface.
+    run.feedback(
+        RunOutcome(Outcome.UNKNOWN),
+        experience_id=result.experience_id,
+        revision_id=result.revision_id,
+        accepted=True,
+    )
+```
+
+Only ACTIVE and applicable definitions are considered. A Policy Delta without an explicit token
+budget is rejected with `MISSING_TOKEN_BUDGET`; a budget that fits no rules is rejected with
+`POLICY_DELTA_BUDGET_EXHAUSTED`. Selected rules carry `HARNESS_ADOPTION_REQUIRED`: the Runtime never
+injects them or records application on its own. Quarantined, validated, candidate and deprecated
+definitions remain unavailable to this path.
+
+Use `run.start_child(task)` for delegation. The child inherits the parent agent, Harness, model,
+environment, budget and tool snapshot unless explicitly overridden, and stores `parent_run_id` for
+auditable lineage. `ExperienceRuntime.active_run_count` is intended for diagnostics. Runtime shutdown
+records `RUN_CANCELLED` for every unfinished explicit session before closing storage.
+
+Third-party integrations can add a persisted-evidence conformance test:
+
+```python
+from agent_experience import run_protocol_conformance
+
+report = run_protocol_conformance(experience, "my-harness", exercise_one_run)
+assert report.passed, report.checks
+```
+
+The exercise callback receives the Runtime, performs one complete or cancelled task, and returns its
+run ID. The report verifies lifecycle cardinality, terminal ordering, correlation and payload
+integrity. It uses `PASS`, `FAIL`, `UNSUPPORTED` and `INCONCLUSIVE` statuses so future adapter-specific
+checks can describe partial framework capabilities without claiming success.
+
+## Adapter capability declarations
+
+`AdapterCapabilities` now declares `protocol_version` plus support for explicit runs, selection,
+feedback, delegation and async execution. Dependencies fail closed: an adapter cannot claim feedback
+or delegation unless it also supports explicit runs. Pass the declaration and
+`ConformanceRequirements` to `run_protocol_conformance()` when an integration promises optional
+capabilities.
+
+`UNSUPPORTED` means the adapter explicitly declares that a required feature is unavailable.
+`INCONCLUSIVE` means the capability was required but no machine-readable declaration was supplied.
+Neither status counts as a passing report.
+
+## Async semantics
+
+The v0.2 protocol deliberately has one lifecycle model rather than separate sync and async state
+machines. Async Harness tasks may call `start`, `observe`, `select`, `feedback` and `complete` at
+their lifecycle boundaries. Session identity is explicit and does not depend on a shared mutable
+current run. Local event persistence remains ordered and synchronous; the library does not wrap it
+in hidden executor threads. A future asynchronous storage backend must preserve the same ordering,
+terminal-state and cancellation contracts before adding awaitable persistence APIs.
+
+## LangGraph explicit sessions
+
+Pass an explicit protocol run to `ExperienceRuntime.langgraph(run=run)` to place normalized node,
+route, checkpoint and interrupt evidence in the same lifecycle as selection and outcome feedback.
+Passing both `run` and `run_id` is an error. A run-bound bridge cannot spoof another run ID or pass
+repository durability/storage arguments through the adapter boundary.
+
+When conformance requirements include selection, feedback or delegation, the suite now checks
+persisted `protocol_operation` attributes and child `parent_run_id` evidence. A declaration that
+claims support without observable evidence produces `FAIL`; an explicit unsupported declaration
+produces `UNSUPPORTED`.
+
+## Protocol compatibility snapshot
+
+`PROTOCOL_API_VERSION` is `"0.2"`. Tests freeze the public protocol exports, dataclass field order
+and lifecycle method parameters. Additive changes require an intentional snapshot review; removing,
+renaming or reordering existing fields requires a documented compatibility decision and cannot be
+merged as an incidental refactor.
+
+## Machine-readable conformance reports
+
+`ConformanceReport.to_dict()` and `to_json()` emit schema version `0.2`, integration identity, run
+ID, overall pass state and ordered checks. Every non-pass check carries a stable
+`ConformanceReasonCode`, including exercise exceptions, lifecycle cardinality, terminal ordering,
+correlation, payload integrity, unsupported/undeclared capabilities and missing behavioral evidence.
+JSON output is deterministically key-sorted and is suitable for CI artifacts; automation should use
+`status` and `reason_code`, not parse human-readable `detail` text.
+
+## Event forward compatibility
+
+Known events may add payload fields because Struct consumers preserve unknown extensions. An event
+type whose lifecycle semantics are unknown to the installed SDK is critical by default and is
+rejected. A producer may preserve an informational extension event by setting the envelope attribute
+`compatibility=optional`. Optional unknown events retain payloads and integrity hashes, survive
+repository replay, and advance projection watermarks without changing known read-model state.
+
+Do not mark an event optional if ignoring it could change authorization, lifecycle state, money,
+external side effects, verification or safety decisions.

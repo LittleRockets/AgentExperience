@@ -32,6 +32,14 @@ from agent_experience.package import (
 )
 from agent_experience.schema import events_pb2
 from agent_experience.security import RedactionPolicy
+from agent_experience.session import (
+    ExperienceRun,
+    HarnessState,
+    RunContext,
+    RunOutcome,
+    SelectionDecision,
+    SelectionResult,
+)
 from agent_experience.storage import Repository
 
 P = ParamSpec("P")
@@ -73,6 +81,8 @@ class ExperienceRuntime:
         self._worker: threading.Thread | None = None
         self._worker_error: BaseException | None = None
         self._closed = False
+        self._sessions: dict[str, ExperienceRun] = {}
+        self._sessions_lock = threading.RLock()
         self._gateway = InstrumentationGateway(self)
         self._capabilities = CapabilityCatalog()
         self._frameworks: set[str] = set()
@@ -89,6 +99,259 @@ class ExperienceRuntime:
             if self._repository is None:
                 self._repository = Repository(self.path)
             return self._repository
+
+    def start(
+        self,
+        task: Any,
+        *,
+        agent: str | None = None,
+        harness: str | None = None,
+        metadata: dict[str, Any] | None = None,
+        task_id: str = "",
+        model_id: str = "",
+        environment: dict[str, Any] | None = None,
+        budget: dict[str, Any] | None = None,
+        tools: Iterable[str] = (),
+        parent_run_id: str = "",
+    ) -> ExperienceRun:
+        """Start an explicit v0.2 protocol session for an external Harness."""
+
+        self._ensure_pending_mounts()
+        run_id = str(uuid.uuid4())
+        context = RunContext(
+            run_id=run_id,
+            task_id=task_id,
+            agent_id=agent or "",
+            harness_id=harness or "",
+            model_id=model_id,
+            parent_run_id=parent_run_id,
+            environment=environment or {},
+            budget=budget or {},
+            tools=tuple(tools),
+            metadata=metadata or {},
+        )
+        event = self.repository.append_event(
+            events_pb2.RUN_STARTED,
+            run_id=run_id,
+            producer="agent-experience-protocol/v0.2",
+            payload={
+                "task": self.redaction.sanitize(task),
+                "task_id": task_id,
+                "agent_id": context.agent_id,
+                "harness_id": context.harness_id,
+                "model_id": model_id,
+                "parent_run_id": parent_run_id,
+                "environment": self.redaction.sanitize(dict(context.environment)),
+                "budget": self.redaction.sanitize(dict(context.budget)),
+                "tools": list(context.tools),
+                "metadata": self.redaction.sanitize(dict(context.metadata)),
+            },
+            correlation_id=parent_run_id or run_id,
+        )
+        run = ExperienceRun(
+            self,
+            context,
+            started_event_id=event.event_id,
+            started_perf_ns=time.perf_counter_ns(),
+        )
+        with self._sessions_lock:
+            self._sessions[run_id] = run
+        return run
+
+    @property
+    def active_run_count(self) -> int:
+        """Return the number of explicit protocol sessions that are still running."""
+
+        with self._sessions_lock:
+            return len(self._sessions)
+
+    def _release_session(self, run_id: str) -> None:
+        with self._sessions_lock:
+            self._sessions.pop(run_id, None)
+
+    def _select_for_run(
+        self, run: ExperienceRun, state: HarnessState, *, limit: int
+    ) -> tuple[SelectionResult, ...]:
+        from agent_experience.experience import ExperienceCatalog
+        from agent_experience.retrieval import ExperienceRetriever, RetrievalQuery
+        from agent_experience.schema import experience_pb2
+        from agent_experience.selection import RuleSelector, TokenBudget
+
+        if limit <= 0:
+            raise ValueError("selection limit must be positive")
+        task_type_value = state.harness_policy.get("task_type", "")
+        task_type = task_type_value if isinstance(task_type_value, str) else ""
+        query = RetrievalQuery(
+            text=" ".join(value for value in (state.task, state.goal) if value),
+            task_type=task_type,
+            framework=state.framework,
+            available_tools=state.available_tools,
+            limit=limit,
+        )
+        advice = ExperienceRetriever(self.repository).search(query)
+        if not advice:
+            result = SelectionResult(
+                decision=SelectionDecision.ABSTAINED,
+                reason_codes=("NO_APPLICABLE_EXPERIENCE",),
+                summary="No active experience satisfied the v0.2 retrieval constraints.",
+            )
+            self.repository.append_event(
+                events_pb2.EXPERIENCE_ADVISED,
+                run_id=run.run_id,
+                producer="agent-experience-protocol/v0.2",
+                payload={
+                    "decision": result.decision.value,
+                    "reason_codes": list(result.reason_codes),
+                },
+                attributes={"protocol_operation": "select"},
+                correlation_id=run.run_id,
+            )
+            return (result,)
+        definitions = ExperienceCatalog(self.repository).definitions()
+        results: list[SelectionResult] = []
+        for value in advice:
+            definition = definitions[value.experience_id]
+            if definition.mode == experience_pb2.PROMPT_DELTA:
+                required_budget_keys = (
+                    "max_context_tokens",
+                    "base_input_tokens",
+                    "reserved_output_tokens",
+                )
+                if not all(
+                    isinstance(state.budget.get(key), int) for key in required_budget_keys
+                ):
+                    results.append(
+                        SelectionResult(
+                            decision=SelectionDecision.REJECTED,
+                            experience_id=value.experience_id,
+                            revision_id=value.revision_id,
+                            reason_codes=("MISSING_TOKEN_BUDGET",),
+                            summary=(
+                                "ACTIVE Policy Delta requires an explicit Harness token budget."
+                            ),
+                            evidence=value.source_run_ids,
+                        )
+                    )
+                    continue
+                maximum_value = state.budget.get("max_experience_tokens", 128)
+                maximum = maximum_value if isinstance(maximum_value, int) else 128
+                baseline_value = state.harness_policy.get("baseline_paths", ())
+                baseline_paths = (
+                    frozenset(item for item in baseline_value if isinstance(item, str))
+                    if isinstance(baseline_value, (list, tuple, set, frozenset))
+                    else frozenset()
+                )
+                selection = RuleSelector().select_and_record(
+                    self.repository,
+                    definition,
+                    TokenBudget(
+                        max_context_tokens=int(state.budget["max_context_tokens"]),
+                        base_input_tokens=int(state.budget["base_input_tokens"]),
+                        reserved_output_tokens=int(state.budget["reserved_output_tokens"]),
+                        max_experience_tokens=maximum,
+                    ),
+                    run_id=run.run_id,
+                    baseline_paths=baseline_paths,
+                )
+                if not selection.selected:
+                    results.append(
+                        SelectionResult(
+                            decision=SelectionDecision.REJECTED,
+                            experience_id=value.experience_id,
+                            revision_id=value.revision_id,
+                            reason_codes=("POLICY_DELTA_BUDGET_EXHAUSTED",),
+                            summary="ACTIVE Policy Delta had no rules within the Harness budget.",
+                            evidence=value.source_run_ids,
+                        )
+                    )
+                    continue
+                results.append(
+                    SelectionResult(
+                        decision=SelectionDecision.SELECTED,
+                        experience_id=value.experience_id,
+                        revision_id=value.revision_id,
+                        confidence=max(0.0, min(1.0, value.score)),
+                        expected_benefit=value.score,
+                        cost=float(selection.estimated_tokens),
+                        risk="prompt_delta_advice",
+                        reason_codes=(
+                            "ACTIVE_AND_APPLICABLE",
+                            "V0_2_POLICY_DELTA_ADVICE",
+                            "HARNESS_ADOPTION_REQUIRED",
+                        ),
+                        summary=value.summary,
+                        steps=tuple(selection.rendered.splitlines()),
+                        evidence=value.source_run_ids,
+                    )
+                )
+                continue
+            results.append(
+                SelectionResult(
+                    decision=SelectionDecision.SELECTED,
+                    experience_id=value.experience_id,
+                    revision_id=value.revision_id,
+                    confidence=max(0.0, min(1.0, value.score)),
+                    expected_benefit=value.score,
+                    risk="unknown",
+                    reason_codes=(
+                        "ACTIVE_AND_APPLICABLE",
+                        "V0_2_DETERMINISTIC_RETRIEVAL",
+                    ),
+                    summary=value.summary,
+                    steps=value.steps,
+                    evidence=value.source_run_ids,
+                )
+            )
+        for result in results:
+            self.repository.append_event(
+                events_pb2.EXPERIENCE_ADVISED,
+                run_id=run.run_id,
+                producer="agent-experience-protocol/v0.2",
+                payload={
+                    "decision": result.decision.value,
+                    "experience_id": result.experience_id,
+                    "revision_id": result.revision_id,
+                    "confidence": result.confidence,
+                    "reason_codes": list(result.reason_codes),
+                },
+                attributes={"protocol_operation": "select"},
+                correlation_id=run.run_id,
+            )
+        return tuple(results)
+
+    def _outcome_payload(
+        self,
+        outcome: RunOutcome,
+        evaluation: Any = None,
+        *,
+        experience_id: str = "",
+        revision_id: str = "",
+        accepted: bool | None = None,
+    ) -> dict[str, Any]:
+        payload: dict[str, Any] = {
+            "outcome": outcome.status.value,
+            "result": self.redaction.sanitize(outcome.result),
+            "metrics": dict(outcome.metrics),
+            "tokens": outcome.tokens,
+            "latency_ms": outcome.latency_ms,
+            "tool_cost": outcome.tool_cost,
+            "risk": outcome.risk,
+            "experience_id": experience_id,
+            "revision_id": revision_id,
+        }
+        if outcome.reward is not None:
+            payload["reward"] = outcome.reward
+        if accepted is not None:
+            payload["accepted"] = accepted
+        if evaluation is not None:
+            payload.update(
+                confidence=evaluation.confidence,
+                evaluator_id=evaluation.evaluator_id,
+                evaluator_version=evaluation.evaluator_version,
+                evidence=list(evaluation.evidence),
+                evaluated_outcome=evaluation.outcome.value,
+            )
+        return payload
 
     @overload
     def run(self, function: Callable[P, R]) -> Callable[P, R]: ...
@@ -174,15 +437,22 @@ class ExperienceRuntime:
         self._frameworks.add("langchain")
         return create_langchain_middleware(self._gateway, redaction=self.redaction)
 
-    def langgraph(self, *, run_id: str | None = None) -> Any:
+    def langgraph(
+        self,
+        *,
+        run: ExperienceRun | None = None,
+        run_id: str | None = None,
+    ) -> Any:
         """Return a LangGraph event bridge bound to this Runtime's gateway."""
 
         from agent_experience.adapters import LangGraphEventBridge
 
         self._frameworks.add("langgraph")
+        if run is not None and run_id is not None:
+            raise ValueError("pass either run or run_id, not both")
         return LangGraphEventBridge(
-            self._gateway,
-            run_id=run_id,
+            run if run is not None else self._gateway,
+            run_id=run.run_id if run is not None else run_id,
             redaction=self.redaction,
         )
 
@@ -297,6 +567,11 @@ class ExperienceRuntime:
         with self._repository_lock:
             if self._closed:
                 return
+        with self._sessions_lock:
+            active = tuple(self._sessions.values())
+        for run in active:
+            if run.state.value == "running":
+                run.cancel("runtime closed with an active protocol session")
         self.flush()
         with self._repository_lock:
             if self._worker is not None:

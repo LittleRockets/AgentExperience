@@ -251,6 +251,41 @@ Only `PROMPT_DELTA` rules are rendered by `RuleSelector`. Inject the selected te
 untrusted guidance; it must not override system, security or permission policy. For model-accurate
 token counts, implement the `TokenEstimator` protocol with the model's tokenizer.
 
+### Using the same delta through the v0.2 Harness protocol
+
+The v0.2 path preserves the lifecycle and ownership boundary while making the legacy rule
+selection available as bounded advice. The definition must be `ACTIVE`; applicability and budget
+are supplied by the Harness through the existing extension maps:
+
+```python
+from agent_experience import HarnessState
+
+result = run.select(
+    HarnessState(
+        task="plan a two-day New York trip",
+        harness_policy={"task_type": "travel_plan"},
+        budget={
+            "max_context_tokens": 8192,
+            "base_input_tokens": 100,
+            "reserved_output_tokens": 3000,
+            "max_experience_tokens": 96,
+        },
+    )
+)[0]
+if result.decision.value == "selected":
+    # Add result.steps to the Harness-owned prompt/control surface only after review.
+    run.feedback(
+        RunOutcome(Outcome.UNKNOWN),
+        experience_id=result.experience_id,
+        revision_id=result.revision_id,
+        accepted=True,
+    )
+```
+
+`ABSTAINED` means no ACTIVE applicable definition exists. `REJECTED` with
+`MISSING_TOKEN_BUDGET` or `POLICY_DELTA_BUDGET_EXHAUSTED` means the safety budget prevented
+selection. Neither case causes implicit fallback injection.
+
 ## 8. Measure benefit before activation
 
 ```python
