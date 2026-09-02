@@ -1,4 +1,4 @@
-"""Run v0.2 Protocol smoke checks against an installed wheel, outside the source package."""
+"""Run Protocol smoke checks against an installed wheel, outside the source package."""
 
 from __future__ import annotations
 

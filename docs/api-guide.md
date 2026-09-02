@@ -78,6 +78,22 @@ not access it.
 
 Everything below is the low-level or policy surface used to extend the Runtime.
 
+## Adaptive selection (v0.3)
+
+`PolicyObject` is the immutable v1 selection contract. `PolicyCost`, `ExpectedEffect` and
+`RiskLevel` make its budget and safety inputs explicit; `policy_from_definition()` provides the
+non-destructive migration from stored Protobuf definitions.
+
+`AdaptiveSelector` consumes Policy Objects and a `SelectionContext`, returning a `SelectionBatch`
+of `CandidateDecision` records. `ScoreComponents` exposes applicability, expected benefit, cost,
+risk and uncertainty. `PolicyScorer` implementations are optional and run only after hard filters;
+`DeterministicPolicyScorer` is the safe fallback. `SelectorConfig` bounds candidate and composition
+counts and freezes the selector version written to audit evidence.
+
+`SelectionObservation` and `evaluate_selection()` implement leakage-aware holdout metrics.
+`SelectionFeedback` and `DriftMonitor` aggregate online evidence into a `DriftReport`; the report
+can recommend quarantine but never changes lifecycle state itself.
+
 ## Storage and observation
 
 ### `Repository(path, *, durability=...)`
@@ -409,7 +425,7 @@ produces `UNSUPPORTED`.
 
 ## Protocol compatibility snapshot
 
-`PROTOCOL_API_VERSION` is `"0.2"`. Tests freeze the public protocol exports, dataclass field order
+`PROTOCOL_API_VERSION` is `"0.3"`. Tests freeze the v0.2 public protocol exports, dataclass field order
 and lifecycle method parameters. Additive changes require an intentional snapshot review; removing,
 renaming or reordering existing fields requires a documented compatibility decision and cannot be
 merged as an incidental refactor.

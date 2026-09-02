@@ -111,7 +111,7 @@ standalone `@experience.tool` call also receives an automatic run context. Call
 `experience.flush()` only when a test or short-lived process must wait for background consolidation;
 normal applications are flushed when the runtime closes.
 
-### Harness / Loop protocol (v0.2 preview)
+### Harness / Loop protocol and adaptive selection (v0.3)
 
 Custom Harnesses can own their Loop while reporting structured evidence through an explicit,
 concurrency-safe run session:
@@ -137,6 +137,12 @@ the Harness records adoption with `run.feedback(..., experience_id=..., accepted
 return an explicit `ABSTAINED` result when no active experience is applicable. Use `run.observe()`
 for normalized runtime evidence and `run.feedback()` for intermediate outcome or adoption signals.
 The existing decorators remain supported and use the same runtime-owned event store.
+
+V0.3 evaluates immutable Policy Objects through TTL, task/framework, tool/capability, environment,
+precondition, cost and risk hard constraints before scoring applicability, expected benefit, cost,
+risk and uncertainty. Optional scorers fail back to deterministic selection and cannot override a
+hard constraint. Composition is bounded and requires mutual opt-in with no Policy Delta path
+collision. See the [Adaptive Selection guide](docs/adaptive-selection-v0.3.md).
 
 See [`examples/custom_loop_protocol.py`](examples/custom_loop_protocol.py) for a complete minimal
 Harness. Integrations can call `run_protocol_conformance()` in their test suite to verify that each
@@ -377,7 +383,8 @@ Please report vulnerabilities according to [SECURITY.md](SECURITY.md), not in a 
 AgentExperience is **pre-alpha**. Public APIs and persistent schemas may change before 1.0. The
 built-in backend is local, single-process and single-writer; it is not presented as a distributed
 event log or multi-tenant service. Review the [API guide](docs/api-guide.md),
-[security policy](SECURITY.md) and changelog before production adoption.
+[adaptive selection guide](docs/adaptive-selection-v0.3.md), [security policy](SECURITY.md) and
+changelog before production adoption.
 
 ## ⭐ Star History
 

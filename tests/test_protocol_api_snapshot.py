@@ -19,7 +19,7 @@ from agent_experience import (
 
 
 class ProtocolAPISnapshotTests(unittest.TestCase):
-    def test_public_exports_are_frozen_for_v0_2(self) -> None:
+    def test_v0_2_exports_remain_available_in_v0_3(self) -> None:
         expected = {
             "ConformanceCheck",
             "ConformanceReport",
@@ -38,7 +38,7 @@ class ProtocolAPISnapshotTests(unittest.TestCase):
             "SelectionResult",
             "run_protocol_conformance",
         }
-        self.assertEqual(PROTOCOL_API_VERSION, "0.2")
+        self.assertEqual(PROTOCOL_API_VERSION, "0.3")
         self.assertTrue(expected.issubset(set(agent_experience.__all__)))
 
     def test_dataclass_field_snapshot(self) -> None:

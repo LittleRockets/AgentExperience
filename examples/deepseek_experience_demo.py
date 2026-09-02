@@ -6,6 +6,7 @@ to generic RunFeatures and BenefitMeasurement records.
 
 from __future__ import annotations
 
+import http.client
 import json
 import os
 import re
@@ -92,7 +93,9 @@ class PlanScore:
     evidence: tuple[str, ...]
 
 
-def call_deepseek(prompt: str, *, label: str) -> ModelCall:
+def call_deepseek(
+    prompt: str, *, label: str, temperature: float = 0.2, max_attempts: int = 3
+) -> ModelCall:
     api_key = os.environ.get("DEEPSEEK_API_KEY") or LOCAL_DEEPSEEK_API_KEY
     if not api_key:
         raise RuntimeError("请在已忽略的 examples/deepseek_demo_local.py 中配置 API Key")
@@ -106,21 +109,49 @@ def call_deepseek(prompt: str, *, label: str) -> ModelCall:
         "messages": [{"role": "system", "content": SYSTEM}, {"role": "user", "content": prompt}],
         "thinking": {"type": "disabled"},
         "max_tokens": 3000,
-        "temperature": 0.2,
+        "temperature": temperature,
     }
-    request = urllib.request.Request(
-        f"{BASE_URL}/chat/completions",
-        data=json.dumps(body).encode("utf-8"),
-        headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
-        method="POST",
-    )
+    if max_attempts <= 0:
+        raise ValueError("max_attempts must be positive")
     started = time.perf_counter()
-    try:
-        with urllib.request.urlopen(request, timeout=240) as response:
-            payload = json.load(response)
-    except urllib.error.HTTPError as error:
-        detail = error.read().decode("utf-8", errors="replace")
-        raise RuntimeError(f"DeepSeek HTTP {error.code}: {detail}") from error
+    payload: dict[str, Any] | None = None
+    retryable = (
+        http.client.IncompleteRead,
+        urllib.error.URLError,
+        TimeoutError,
+        ConnectionError,
+        json.JSONDecodeError,
+    )
+    for attempt in range(1, max_attempts + 1):
+        request = urllib.request.Request(
+            f"{BASE_URL}/chat/completions",
+            data=json.dumps(body).encode("utf-8"),
+            headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
+            method="POST",
+        )
+        try:
+            with urllib.request.urlopen(request, timeout=240) as response:
+                loaded = json.load(response)
+            if not isinstance(loaded, dict):
+                raise RuntimeError("DeepSeek response must be a JSON object")
+            payload = loaded
+            break
+        except urllib.error.HTTPError as error:
+            detail = error.read().decode("utf-8", errors="replace")
+            raise RuntimeError(f"DeepSeek HTTP {error.code}: {detail}") from error
+        except retryable as error:
+            if attempt == max_attempts:
+                raise RuntimeError(
+                    f"DeepSeek transport failed after {max_attempts} attempts: {error}"
+                ) from error
+            delay = 2**attempt
+            print(
+                f"DeepSeek transport retry {attempt}/{max_attempts - 1} "
+                f"after {type(error).__name__}; waiting {delay}s"
+            )
+            time.sleep(delay)
+    if payload is None:
+        raise RuntimeError("DeepSeek transport completed without a response")
     usage = payload.get("usage", {})
     result = ModelCall(
         str(payload["choices"][0]["message"]["content"]),

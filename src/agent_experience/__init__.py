@@ -1,6 +1,17 @@
 """AgentExperience public package API."""
 
 from ._version import __version__
+from .adaptive import (
+    AdaptiveDecision,
+    AdaptiveSelector,
+    CandidateDecision,
+    DeterministicPolicyScorer,
+    PolicyScorer,
+    ScoreComponents,
+    SelectionBatch,
+    SelectionContext,
+    SelectorConfig,
+)
 from .advice import AdviceBudget, render_semantic_advice
 from .benefit import (
     BenefitAggregate,
@@ -17,6 +28,8 @@ from .conformance import (
     ConformanceStatus,
     run_protocol_conformance,
 )
+from .drift import DriftMonitor, DriftReport, SelectionFeedback
+from .evaluation import SelectionEvaluation, SelectionObservation, evaluate_selection
 from .experience import (
     CandidateExtractor,
     CandidateService,
@@ -48,6 +61,7 @@ from .package import (
     TrustStatus,
     TrustStore,
 )
+from .policy import ExpectedEffect, PolicyCost, PolicyObject, RiskLevel, policy_from_definition
 from .protocols import BaselineResolver, FeatureExtractor, TokenEstimator, Utf8TokenEstimator
 from .replay import DAGValidationError, ReplayExecutor, ReplayResult, validate_dag
 from .retrieval import Advice, ExperienceRetriever, RetrievalQuery
@@ -68,6 +82,24 @@ from .session import (
 from .storage import Durability, EventLog, LogRecord, ProjectionRunner, Repository, SQLiteProjection
 
 __all__ = [
+    "AdaptiveDecision",
+    "AdaptiveSelector",
+    "CandidateDecision",
+    "DeterministicPolicyScorer",
+    "DriftMonitor",
+    "DriftReport",
+    "ExpectedEffect",
+    "PolicyCost",
+    "PolicyObject",
+    "PolicyScorer",
+    "RiskLevel",
+    "ScoreComponents",
+    "SelectionBatch",
+    "SelectionContext",
+    "SelectionEvaluation",
+    "SelectionFeedback",
+    "SelectionObservation",
+    "SelectorConfig",
     "Durability",
     "Advice",
     "AdviceBudget",
@@ -145,6 +177,8 @@ __all__ = [
     "import_package",
     "load_traces",
     "measure_benefit",
+    "evaluate_selection",
+    "policy_from_definition",
     "render_semantic_advice",
     "run_protocol_conformance",
     "validate_dag",

@@ -4,6 +4,35 @@ All notable changes will be documented in this file.
 
 ## Unreleased
 
+## 0.3.0 - 2026-08-21
+
+### Added
+
+- Add immutable Policy Object v1 contracts with canonical serialization, revision hashing,
+  migration from legacy definitions, validity, evidence, cost, risk and advisory Policy Delta.
+- Add deterministic adaptive selection with capability/environment/TTL/precondition hard filters,
+  decomposed benefit/cost/risk/uncertainty scores, stable tie-breaks and explicit ABSTAIN.
+- Add pluggable and shadow scorer contracts with safe deterministic fallback; soft scores cannot
+  bypass hard constraints.
+- Add bounded, mutual-opt-in composition with explicit conflicts and Policy Delta path collision
+  detection.
+- Add recent-decay, cohort-aware drift reports and selector-version comparison without automatic
+  lifecycle mutation.
+- Add leakage-aware offline evaluation for precision, negative transfer, coverage, abstention
+  quality, calibration and paired net-benefit confidence intervals.
+- Integrate v0.3 ranking and auditable policy hashes/reason traces into the explicit run selection
+  path.
+- Add a four-arm DeepSeek comparison using one no-experience Baseline and frozen v0.1, v0.2 and
+  current v0.3 experience paths, with transport retries and explicit interpretation limits.
+
+### Compatibility
+
+- Preserve the v0.2 `SelectionResult` shape and explicit ExperienceRun lifecycle.
+- Preserve budgeted Policy Delta advice and require explicit Harness adoption; v0.3 never controls
+  or mutates a Harness.
+- Reuse existing repository/package schemas and migrate definitions in memory without destructive
+  storage changes.
+
 ## 0.2.0 - 2026-08-17
 
 ### Added

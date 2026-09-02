@@ -71,6 +71,4 @@ examples/deepseek_demo_local.py
 .wiki-publish/
 
 # Private/source planning artifacts
-AgentExp.md
 analysis.pdf
-AgentExperience.md

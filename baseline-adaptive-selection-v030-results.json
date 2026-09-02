@@ -1,0 +1,32 @@
+{
+  "dataset": "synthetic-reference-v1",
+  "deterministic_output_count": 1,
+  "evaluation": {
+    "abstention_quality": 1.0,
+    "calibration_error": 0.09999999999999998,
+    "coverage": 0.75,
+    "leakage_free": true,
+    "negative_transfer_rate": 0.0,
+    "net_benefit": 0.75,
+    "net_benefit_ci_high": 0.8858990508523437,
+    "net_benefit_ci_low": 0.6141009491476563,
+    "reason_codes": [
+      "EVALUATION_VALID"
+    ],
+    "sample_count": 40,
+    "schema_version": "0.3",
+    "selection_precision": 1.0
+  },
+  "hard_constraint_bypasses": 0,
+  "latency_ms": {
+    "max": 0.1988,
+    "median": 0.0521,
+    "p95": 0.0559
+  },
+  "limitations": [
+    "synthetic reference data; not a real-world effectiveness claim",
+    "local process timing; not a cross-platform SLA"
+  ],
+  "sample_count": 100,
+  "schema_version": "0.3"
+}

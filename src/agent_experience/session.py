@@ -16,7 +16,7 @@ from agent_experience.schema import events_pb2
 if TYPE_CHECKING:
     from agent_experience.runtime import ExperienceRuntime
 
-PROTOCOL_API_VERSION = "0.2"
+PROTOCOL_API_VERSION = "0.3"
 
 
 def _frozen_mapping(value: Mapping[str, Any] | None) -> Mapping[str, Any]:
@@ -101,7 +101,7 @@ class SelectionDecision(str, Enum):
 
 @dataclass(frozen=True, slots=True)
 class SelectionResult:
-    """Explainable v0.2 selection output; it never controls the Harness."""
+    """Explainable selection output; it never controls the Harness."""
 
     decision: SelectionDecision
     experience_id: str = ""

@@ -208,6 +208,90 @@ class ExperienceRuntime:
             )
             return (result,)
         definitions = ExperienceCatalog(self.repository).definitions()
+        from agent_experience.adaptive import AdaptiveSelector, SelectionContext, SelectorConfig
+        from agent_experience.policy import RiskLevel, policy_from_definition
+
+        maximum_risk_value = state.harness_policy.get("max_experience_risk", "medium")
+        maximum_risk = {
+            "low": RiskLevel.LOW,
+            "medium": RiskLevel.MEDIUM,
+            "high": RiskLevel.HIGH,
+            "unknown": RiskLevel.UNKNOWN,
+        }.get(str(maximum_risk_value).lower(), RiskLevel.MEDIUM)
+        maximum_composition_value = state.harness_policy.get("max_experience_composition", 1)
+        maximum_composition = (
+            maximum_composition_value
+            if isinstance(maximum_composition_value, int) and maximum_composition_value > 0
+            else 1
+        )
+        adaptive = AdaptiveSelector(
+            SelectorConfig(max_composition=min(limit, maximum_composition))
+        ).select(
+            [policy_from_definition(definitions[item.experience_id]) for item in advice],
+            SelectionContext(
+                task=state.task,
+                goal=state.goal,
+                task_type=task_type,
+                framework=state.framework,
+                model_id=state.model_id,
+                available_tools=state.available_tools,
+                capabilities=frozenset(
+                    item
+                    for item in state.harness_policy.get("capabilities", ())
+                    if isinstance(item, str)
+                ),
+                environment=state.environment,
+                state=state.harness_policy,
+                # Legacy PROMPT_DELTA definitions carry the total mined size here. RuleSelector
+                # below enforces the actual per-rule budget, so filtering the entire definition
+                # would incorrectly reject a useful bounded subset.
+                max_prompt_tokens=None,
+                max_latency_ms=(
+                    float(state.budget["max_experience_latency_ms"])
+                    if isinstance(state.budget.get("max_experience_latency_ms"), (int, float))
+                    else None
+                ),
+                max_tool_cost=(
+                    float(state.budget["max_experience_tool_cost"])
+                    if isinstance(state.budget.get("max_experience_tool_cost"), (int, float))
+                    else None
+                ),
+                max_risk=maximum_risk,
+            ),
+            limit=limit,
+        )
+        selected_ids = [item.experience_id for item in adaptive.selected]
+        advice_by_id = {item.experience_id: item for item in advice}
+        advice = tuple(advice_by_id[item] for item in selected_ids)
+        if not advice:
+            result = SelectionResult(
+                decision=SelectionDecision.ABSTAINED,
+                reason_codes=("NO_POLICY_PASSED_SELECTION",),
+                summary="No active experience passed the v0.3 hard constraints and scoring gate.",
+            )
+            self.repository.append_event(
+                events_pb2.EXPERIENCE_ADVISED,
+                run_id=run.run_id,
+                producer="agent-experience-protocol/v0.3",
+                payload={
+                    "decision": result.decision.value,
+                    "reason_codes": list(result.reason_codes),
+                    "selector_version": adaptive.selector_version,
+                    "candidate_trace": [
+                        {
+                            "experience_id": item.experience_id,
+                            "revision_id": item.revision_id,
+                            "decision": item.decision.value,
+                            "reason_codes": list(item.reason_codes),
+                            "policy_hash": item.policy_hash,
+                        }
+                        for item in adaptive.decisions
+                    ],
+                },
+                attributes={"protocol_operation": "select", "selection_contract": "0.3"},
+                correlation_id=run.run_id,
+            )
+            return (result,)
         results: list[SelectionResult] = []
         for value in advice:
             definition = definitions[value.experience_id]
@@ -277,6 +361,7 @@ class ExperienceRuntime:
                         reason_codes=(
                             "ACTIVE_AND_APPLICABLE",
                             "V0_2_POLICY_DELTA_ADVICE",
+                            "V0_3_DETERMINISTIC_SELECTION",
                             "HARNESS_ADOPTION_REQUIRED",
                         ),
                         summary=value.summary,
@@ -296,6 +381,7 @@ class ExperienceRuntime:
                     reason_codes=(
                         "ACTIVE_AND_APPLICABLE",
                         "V0_2_DETERMINISTIC_RETRIEVAL",
+                        "V0_3_DETERMINISTIC_SELECTION",
                     ),
                     summary=value.summary,
                     steps=value.steps,
@@ -306,15 +392,41 @@ class ExperienceRuntime:
             self.repository.append_event(
                 events_pb2.EXPERIENCE_ADVISED,
                 run_id=run.run_id,
-                producer="agent-experience-protocol/v0.2",
+                producer="agent-experience-protocol/v0.3",
                 payload={
                     "decision": result.decision.value,
                     "experience_id": result.experience_id,
                     "revision_id": result.revision_id,
                     "confidence": result.confidence,
                     "reason_codes": list(result.reason_codes),
+                    "selector_version": adaptive.selector_version,
+                    "composite_experience_ids": list(adaptive.composite_experience_ids),
+                    "candidate_trace": [
+                        {
+                            "experience_id": item.experience_id,
+                            "revision_id": item.revision_id,
+                            "decision": item.decision.value,
+                            "reason_codes": list(item.reason_codes),
+                            "policy_hash": item.policy_hash,
+                            "scorer_id": item.scorer_id,
+                            "rank": item.rank,
+                            "score": (
+                                {
+                                    "applicability": item.score.applicability,
+                                    "expected_benefit": item.score.expected_benefit,
+                                    "cost": item.score.cost,
+                                    "risk": item.score.risk,
+                                    "uncertainty": item.score.uncertainty,
+                                    "net_benefit": item.score.net_benefit,
+                                }
+                                if item.score is not None
+                                else None
+                            ),
+                        }
+                        for item in adaptive.decisions
+                    ],
                 },
-                attributes={"protocol_operation": "select"},
+                attributes={"protocol_operation": "select", "selection_contract": "0.3"},
                 correlation_id=run.run_id,
             )
         return tuple(results)

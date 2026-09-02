@@ -1,6 +1,7 @@
 include README.md LICENSE CHANGELOG.md CONTRIBUTING.md CODE_OF_CONDUCT.md SECURITY.md
 include AgentExperience_logo.png
 include pyproject.toml setup.py
+include baseline-adaptive-selection-v030-results.json
 recursive-include protos *.proto
 recursive-include src *.py *.pyi py.typed
 recursive-include tests *.py
